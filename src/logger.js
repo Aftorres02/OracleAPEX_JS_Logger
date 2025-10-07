@@ -116,21 +116,18 @@ namespace.logger = (function(namespace, $, undefined) {
     var retryAttempts = 0;
     
     var attemptSend = function() {
-      $.ajax({
-        url: apex.env.APP_IMAGES_URL + 'logger_process.sql',
-        method: 'POST',
-        data: {
-          x01: logEntry.level,
-          x02: logEntry.text,
-          x03: logEntry.scope,
-          x04: JSON.stringify(logEntry.extra),
-          x05: logEntry.timestamp,
-          x06: logEntry.user,
-          x07: logEntry.page,
-          x08: logEntry.session
-        },
+      apex.server.process('LOG_ENTRY', {
+        x01: logEntry.level,
+        x02: logEntry.text,
+        x03: logEntry.scope || 'JS_LOGGER',
+        x04: JSON.stringify(logEntry.extra || {}),
+        x05: logEntry.timestamp,
+        x06: logEntry.user,
+        x07: logEntry.page,
+        x08: logEntry.session
+      }, {
         success: function(response) {
-          // Log sent successfully
+          // Log sent successfully to Oracle Logger
         },
         error: function(xhr, status, error) {
           retryAttempts++;

@@ -11,16 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial project structure with organized folders
 - Comprehensive API documentation
 - Configuration guide with environment-specific settings
-- Oracle APEX integration guide
+- Oracle APEX integration guide with Oracle Logger PL/SQL API integration
 - Contributing guidelines
 - MIT License
 - Package.json with proper metadata
+- Support for Oracle Logger PL/SQL API integration
+- SQL queries for viewing and maintaining logs
+- Prerequisites section for Oracle Logger installation
 
 ### Changed
 - Reorganized project structure for better maintainability
 - Simplified README.md following community standards
 - Moved example file to dedicated examples folder
 - Updated documentation to be more community-friendly
+- **BREAKING**: Server-side integration now uses Oracle Logger PL/SQL API instead of custom tables
+- Updated APEX process to use `apex.server.process()` instead of direct AJAX
+- Enhanced server-side process to map JavaScript log levels to Oracle Logger constants
 
 ## [1.0.0] - 2024-01-XX
 
