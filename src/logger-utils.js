@@ -328,6 +328,152 @@ namespace.loggerUtils = (function(namespace, undefined) {
      */
     clearTimings: function() {
       timingUnits = {};
+    },
+
+    /**
+     * Sanitize data to prevent issues with circular references and size limits
+     * @param {*} data - The data to sanitize
+     * @param {Object} options - Sanitization options
+     * @returns {*} - Sanitized data
+     */
+    sanitizeData: function(data, options) {
+      if (!data) return data;
+      
+      options = options || {};
+      var maxDataSize = options.maxDataSize || 10000;
+      var enableDataMasking = options.enableDataMasking !== false;
+      var sensitiveFields = options.sensitiveFields || ['password', 'token', 'ssn'];
+      
+      try {
+        // Check for circular references
+        JSON.stringify(data);
+        
+        // Check size limit
+        var dataStr = JSON.stringify(data);
+        if (dataStr.length > maxDataSize) {
+          return {
+            _truncated: true,
+            _originalSize: dataStr.length,
+            data: dataStr.substring(0, maxDataSize) + '...'
+          };
+        }
+        
+        // Mask sensitive fields
+        return this.maskSensitiveFields(data, sensitiveFields, enableDataMasking);
+        
+      } catch (e) {
+        // Circular reference or other JSON error
+        return {
+          _error: 'Could not serialize data',
+          _type: typeof data,
+          _string: String(data).substring(0, 100)
+        };
+      }
+    },
+
+    /**
+     * Mask sensitive fields in data
+     * @param {*} data - The data to mask
+     * @param {Array} sensitiveFields - Array of sensitive field names
+     * @param {boolean} enableMasking - Whether masking is enabled
+     * @returns {*} - Data with sensitive fields masked
+     */
+    maskSensitiveFields: function(data, sensitiveFields, enableMasking) {
+      if (!enableMasking || !data || typeof data !== 'object') {
+        return data;
+      }
+      
+      sensitiveFields = sensitiveFields || ['password', 'token', 'ssn'];
+      var masked = {};
+      
+      for (var key in data) {
+        if (data.hasOwnProperty(key)) {
+          var lowerKey = key.toLowerCase();
+          var isSensitive = sensitiveFields.some(function(field) {
+            return lowerKey.includes(field.toLowerCase());
+          });
+          
+          if (isSensitive) {
+            masked[key] = '***MASKED***';
+          } else {
+            masked[key] = data[key];
+          }
+        }
+      }
+      
+      return masked;
+    },
+
+    /**
+     * Clean up resources to prevent memory leaks
+     * @param {Object} options - Cleanup options
+     */
+    cleanupResources: function(options) {
+      options = options || {};
+      var maxTimingUnits = options.maxTimingUnits || 100;
+      
+      try {
+        // Clean up old timing units (keep only last maxTimingUnits)
+        var timingKeys = Object.keys(timingUnits);
+        if (timingKeys.length > maxTimingUnits) {
+          var toRemove = timingKeys.slice(0, timingKeys.length - maxTimingUnits);
+          toRemove.forEach(function(key) {
+            delete timingUnits[key];
+          });
+        }
+        
+        // Clean up old context entries (keep only last 50)
+        if (contextStack.length > 50) {
+          contextStack = contextStack.slice(-50);
+        }
+      } catch (e) {
+        // Silent cleanup failure
+        if (typeof console !== 'undefined') {
+          console.warn('Logger utils cleanup error:', e.message);
+        }
+      }
+    },
+
+    /**
+     * Simple context management (not stack-based)
+     * @param {string} scope - The context scope
+     * @param {Object} data - Context data
+     * @returns {Object} - Context object
+     */
+    createSimpleContext: function(scope, data) {
+      return {
+        scope: scope,
+        data: data || {},
+        timestamp: new Date().toISOString()
+      };
+    },
+
+    /**
+     * Check if APEX environment is available
+     * @returns {boolean} - Whether APEX is available
+     */
+    isApexAvailable: function() {
+      try {
+        return typeof apex !== 'undefined' && apex.env;
+      } catch (e) {
+        return false;
+      }
+    },
+
+    /**
+     * Safe APEX context retrieval with error handling
+     * @param {Array} keys - APEX context keys to retrieve
+     * @returns {Object} - APEX context with error handling
+     */
+    getSafeApexContext: function(keys) {
+      try {
+        return this.getApexContext(keys);
+      } catch (e) {
+        return {
+          _error: 'APEX context unavailable',
+          _message: e.message
+        };
+      }
     }
   };
 
