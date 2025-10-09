@@ -5,11 +5,15 @@ var namespace = namespace || {};
  * ==========================================================================
  * @module logger-config
  * ==========================================================================
+ * @author Angel O. Flores Torres
+ * @created 2024
+ * @version 1.0
  */
 // Create object for logger configuration
 namespace.loggerConfig = (function (namespace, undefined) {
   'use strict';
 
+  /* ================================================================ */
   // Default configuration values
   var DEFAULT_CONFIG = {
     level: 'INFO',
@@ -27,6 +31,7 @@ namespace.loggerConfig = (function (namespace, undefined) {
     maxTimingUnits: 100
   };
 
+  /* ================================================================ */
   // Log level constants (matching Oracle Logger)
   var LOG_LEVELS = {
     OFF: 0,
@@ -42,6 +47,7 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
 
+  /* ================================================================ */
   // Environment-specific configurations
   var ENV_CONFIGS = {
     development: {
@@ -81,6 +87,7 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
 
+  /* ================================================================ */
   // Console formatting options
   var CONSOLE_CONFIG = {
     showTimestamp: true,
@@ -98,93 +105,121 @@ namespace.loggerConfig = (function (namespace, undefined) {
   };
 
   /* ================================================================ */
+  /**
+   * Get environment-specific configuration
+   * @param {string} environment - The environment name
+   * @returns {Object} - Environment configuration
+   */
+  var getEnvConfig = function (environment) {
+    return Object.assign({}, DEFAULT_CONFIG, ENV_CONFIGS[environment] || {});
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Get console configuration
+   * @returns {Object} - Console config
+   */
+  var getConsoleConfig = function () {
+    return Object.assign({}, CONSOLE_CONFIG);
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Validate log level
+   * @param {string} level - The level to validate
+   * @returns {boolean} - Whether the level is valid
+   */
+  var isValidLevel = function (level) {
+    return LOG_LEVELS[level.toUpperCase()] !== undefined;
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Validate configuration options
+   * @param {Object} config - Configuration to validate
+   * @returns {Object} - Validation result with isValid and errors
+   */
+  var validateConfig = function (config) {
+    var errors = [];
+    var isValid = true;
+
+    if (config.level && !isValidLevel(config.level)) {
+      errors.push('Invalid log level: ' + config.level);
+      isValid = false;
+    }
+
+    if (config.bufferSize && (typeof config.bufferSize !== 'number' || config.bufferSize < 1)) {
+      errors.push('bufferSize must be a positive number');
+      isValid = false;
+    }
+
+    if (config.flushInterval && (typeof config.flushInterval !== 'number' || config.flushInterval < 1000)) {
+      errors.push('flushInterval must be at least 1000ms');
+      isValid = false;
+    }
+
+    if (config.maxDataSize && (typeof config.maxDataSize !== 'number' || config.maxDataSize < 100)) {
+      errors.push('maxDataSize must be at least 100 bytes');
+      isValid = false;
+    }
+
+    if (config.maxTimingUnits && (typeof config.maxTimingUnits !== 'number' || config.maxTimingUnits < 10)) {
+      errors.push('maxTimingUnits must be at least 10');
+      isValid = false;
+    }
+
+    if (config.sensitiveFields && !Array.isArray(config.sensitiveFields)) {
+      errors.push('sensitiveFields must be an array');
+      isValid = false;
+    }
+
+    return {
+      isValid: isValid,
+      errors: errors
+    };
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Get enhanced default configuration with new options
+   * @returns {Object} - Enhanced default configuration
+   */
+  var getEnhancedConfig = function () {
+    return Object.assign({}, DEFAULT_CONFIG);
+  };
+
+
+
+
+
+  /* ================================================================ */
   /* Return public API */
   /* ================================================================ */
   return {
+    // Configuration functions
+    getEnvConfig: getEnvConfig,
+    getConsoleConfig: getConsoleConfig,
+    getEnhancedConfig: getEnhancedConfig,
 
-
-    /**
-     * Get environment-specific configuration
-     * @param {string} environment - The environment name
-     * @returns {Object} - Environment configuration
-     */
-    getEnvConfig: function (environment) {
-      return Object.assign({}, DEFAULT_CONFIG, ENV_CONFIGS[environment] || {});
-    },
-
-
-
-    /**
-     * Get console configuration
-     * @returns {Object} - Console config
-     */
-    getConsoleConfig: function () {
-      return Object.assign({}, CONSOLE_CONFIG);
-    },
-
-    /**
-     * Validate log level
-     * @param {string} level - The level to validate
-     * @returns {boolean} - Whether the level is valid
-     */
-    isValidLevel: function (level) {
-      return LOG_LEVELS[level.toUpperCase()] !== undefined;
-    },
-
-
-
-    /**
-     * Validate configuration options
-     * @param {Object} config - Configuration to validate
-     * @returns {Object} - Validation result with isValid and errors
-     */
-    validateConfig: function (config) {
-      var errors = [];
-      var isValid = true;
-
-      if (config.level && !this.isValidLevel(config.level)) {
-        errors.push('Invalid log level: ' + config.level);
-        isValid = false;
-      }
-
-      if (config.bufferSize && (typeof config.bufferSize !== 'number' || config.bufferSize < 1)) {
-        errors.push('bufferSize must be a positive number');
-        isValid = false;
-      }
-
-      if (config.flushInterval && (typeof config.flushInterval !== 'number' || config.flushInterval < 1000)) {
-        errors.push('flushInterval must be at least 1000ms');
-        isValid = false;
-      }
-
-      if (config.maxDataSize && (typeof config.maxDataSize !== 'number' || config.maxDataSize < 100)) {
-        errors.push('maxDataSize must be at least 100 bytes');
-        isValid = false;
-      }
-
-      if (config.maxTimingUnits && (typeof config.maxTimingUnits !== 'number' || config.maxTimingUnits < 10)) {
-        errors.push('maxTimingUnits must be at least 10');
-        isValid = false;
-      }
-
-      if (config.sensitiveFields && !Array.isArray(config.sensitiveFields)) {
-        errors.push('sensitiveFields must be an array');
-        isValid = false;
-      }
-
-      return {
-        isValid: isValid,
-        errors: errors
-      };
-    },
-
-    /**
-     * Get enhanced default configuration with new options
-     * @returns {Object} - Enhanced default configuration
-     */
-    getEnhancedConfig: function () {
-      return Object.assign({}, DEFAULT_CONFIG);
-    }
+    // Validation functions
+    isValidLevel: isValidLevel,
+    validateConfig: validateConfig
   };
 
 })(namespace);

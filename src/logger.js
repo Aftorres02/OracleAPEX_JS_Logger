@@ -5,6 +5,9 @@ var namespace = namespace || {};
  * ==========================================================================
  * @module logger
  * ==========================================================================
+ * @author Angel O. Flores Torres
+ * @created 2024
+ * @version 1.0
  */
 // Create object for logger functions
 namespace.logger = (function (namespace, $, undefined) {
@@ -27,12 +30,14 @@ namespace.logger = (function (namespace, $, undefined) {
     maxTimingUnits: 100
   };
 
+  /* ================================================================ */
   // Private variables
   var logBuffer = [];
   var flushTimer = null;
   var timingUnits = {};
   var currentContext = null;
 
+  /* ================================================================ */
   // Log levels (same as Oracle Logger)
   var LOG_LEVELS = {
     OFF: 0,
@@ -48,10 +53,20 @@ namespace.logger = (function (namespace, $, undefined) {
 
 
 
+
+
+
+
+
+
   /* ================================================================ */
   /**
    * Check if a log level should be logged based on current configuration
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
    * @param {string|number} level - The log level to check
+   *
    * @returns {boolean} - Whether the level should be logged
    */
   var _shouldLog = function (level) {
@@ -71,8 +86,19 @@ namespace.logger = (function (namespace, $, undefined) {
     return levelNum <= configNum;
   };
 
+
+
+
+
+
+
+
+  /* ================================================================ */
   /**
    * Add log entry to buffer
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
    * @param {Object} logEntry - The log entry to add
    */
   var _addToBuffer = function (logEntry) {
@@ -85,8 +111,18 @@ namespace.logger = (function (namespace, $, undefined) {
     }
   };
 
+
+
+
+
+
+
+
+  /* ================================================================ */
   /**
    * Schedule server sync for buffered logs
+   * @author Angel O. Flores Torres
+   * @created 2024
    */
   var _scheduleServerSync = function () {
     if (!config.enableServer || !config.enableBuffer) return;
@@ -100,8 +136,20 @@ namespace.logger = (function (namespace, $, undefined) {
     }, config.flushInterval);
   };
 
+
+
+
+
+
+
+
+
+
+  /* ================================================================ */
   /**
    * Flush buffer to server
+   * @author Angel O. Flores Torres
+   * @created 2024
    */
   var _flushBuffer = function () {
     if (logBuffer.length === 0) return;
@@ -113,8 +161,20 @@ namespace.logger = (function (namespace, $, undefined) {
     });
   };
 
+
+
+
+
+
+
+
+
+  /* ================================================================ */
   /**
    * Send log entry to server via AJAX with enhanced error handling
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
    * @param {Object} logEntry - The log entry to send
    */
   var _sendToServer = function (logEntry) {
@@ -167,8 +227,19 @@ namespace.logger = (function (namespace, $, undefined) {
     attemptSend();
   };
 
+
+
+
+
+
+
+
+  /* ================================================================ */
   /**
    * Output log entry to console with colors and appropriate console method
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
    * @param {Object} logEntry - The log entry to output
    */
   var _outputToConsole = function (logEntry) {
@@ -210,9 +281,20 @@ namespace.logger = (function (namespace, $, undefined) {
     }
   };
 
+
+
+
+
+
+
+  /* ================================================================ */
   /**
    * Format log entry for console output (fallback for server errors)
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
    * @param {Object} logEntry - The log entry to format
+   *
    * @returns {string} - Formatted log message
    */
   var _formatConsoleMessage = function (logEntry) {
@@ -225,9 +307,20 @@ namespace.logger = (function (namespace, $, undefined) {
     return `[${timestamp}] ${level} ${scope} ${logEntry.text}${extra}${context}`;
   };
 
+
+
+
+
+
+
+  /* ================================================================ */
   /**
    * Sanitize data to prevent issues with circular references and size limits
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
    * @param {*} data - The data to sanitize
+   *
    * @returns {*} - Sanitized data
    */
   var _sanitizeData = function (data) {
@@ -260,9 +353,19 @@ namespace.logger = (function (namespace, $, undefined) {
     }
   };
 
+
+
+
+
+
+  /* ================================================================ */
   /**
    * Mask sensitive fields in data
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
    * @param {*} data - The data to mask
+   *
    * @returns {*} - Data with sensitive fields masked
    */
   var _maskSensitiveFields = function (data) {
@@ -291,8 +394,17 @@ namespace.logger = (function (namespace, $, undefined) {
     return masked;
   };
 
+
+
+
+
+
+
+  /* ================================================================ */
   /**
    * Clean up resources to prevent memory leaks
+   * @author Angel O. Flores Torres
+   * @created 2024
    */
   var _cleanupResources = function () {
     // Clean up old timing units (keep only last maxTimingUnits)
@@ -310,12 +422,22 @@ namespace.logger = (function (namespace, $, undefined) {
     }
   };
 
+
+
+
+
+
+  /* ================================================================ */
   /**
    * Create log entry object with enhanced features
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
    * @param {string} text - The log message
    * @param {string} scope - The scope/context
    * @param {Object} extra - Extra data
    * @param {string} level - The log level
+   *
    * @returns {Object} - Formatted log entry
    */
   var _createLogEntry = function (text, scope, extra, level) {
@@ -338,209 +460,318 @@ namespace.logger = (function (namespace, $, undefined) {
     return logEntry;
   };
 
+
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Main logging function (equivalent to logger.log in PL/SQL)
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
+   * @param {string} text - The log message
+   * @param {string} scope - The scope/context
+   * @param {Object} extra - Extra data
+   * @param {string} level - The log level
+   */
+  var log = function (text, scope, extra, level) {
+    try {
+      var logEntry = _createLogEntry(text, scope, extra, level);
+
+      if (!_shouldLog(logEntry.level)) return;
+
+      // Console output with colors
+      if (config.enableConsole) {
+        _outputToConsole(logEntry);
+      }
+
+      // Buffer and server sync
+      _addToBuffer(logEntry);
+      _scheduleServerSync();
+    } catch (e) {
+      // Fallback logging if main logging fails
+      if (typeof console !== 'undefined') {
+        console.error('Logger error:', e.message);
+        console.log('Original message:', text);
+      }
+    }
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Log error message
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
+   * @param {string} text - The error message
+   * @param {string} scope - The scope/context
+   * @param {Object} extra - Extra data
+   */
+  var error = function (text, scope, extra) {
+    log(text, scope, extra, 'ERROR');
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Log warning message
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
+   * @param {string} text - The warning message
+   * @param {string} scope - The scope/context
+   * @param {Object} extra - Extra data
+   */
+  var warning = function (text, scope, extra) {
+    log(text, scope, extra, 'WARNING');
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Start timing for a unit
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
+   * @param {string} unit - The timing unit name
+   */
+  var timeStart = function (unit) {
+    timingUnits[unit] = performance.now();
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Stop timing for a unit and log the result
+   * @param {string} unit - The timing unit name
+   * @param {string} scope - The scope/context
+   * @returns {number} - Time elapsed in milliseconds
+   */
+  var timeStop = function (unit, scope) {
+    if (!timingUnits[unit]) {
+      console.warn(`Timing unit '${unit}' was not started`);
+      return 0;
+    }
+
+    var elapsed = performance.now() - timingUnits[unit];
+    var message = `${unit} completed in ${elapsed.toFixed(2)}ms`;
+
+    log(message, scope, { unit: unit, elapsed: elapsed }, 'TIMING');
+
+    delete timingUnits[unit];
+    return elapsed;
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Set current context for logging
+   * @param {string} scope - The context scope
+   * @param {Object} data - Context data
+   */
+  var setContext = function (scope, data) {
+    currentContext = {
+      scope: scope,
+      data: data || {},
+      timestamp: new Date().toISOString()
+    };
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Clear current context
+   */
+  var clearContext = function () {
+    currentContext = null;
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Get current context
+   * @returns {Object|null} - Current context or null
+   */
+  var getContext = function () {
+    return currentContext;
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Set log level
+   * @param {string} level - The log level to set
+   */
+  var setLevel = function (level) {
+    if (LOG_LEVELS[level.toUpperCase()] !== undefined) {
+      config.level = level.toUpperCase();
+    } else {
+      console.warn(`Invalid log level: ${level}`);
+    }
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Get current log level
+   * @returns {string} - Current log level
+   */
+  var getLevel = function () {
+    return config.level;
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Configure logger options
+   * @param {Object} options - Configuration options
+   */
+  var configure = function (options) {
+    Object.assign(config, options);
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Get current configuration
+   * @returns {Object} - Current configuration
+   */
+  var getConfig = function () {
+    return Object.assign({}, config);
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Flush buffer immediately with error handling
+   */
+  var flush = function () {
+    try {
+      _flushBuffer();
+    } catch (e) {
+      if (typeof console !== 'undefined') {
+        console.error('Logger flush error:', e.message);
+      }
+    }
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Clear buffer with memory cleanup
+   */
+  var clearBuffer = function () {
+    try {
+      logBuffer.length = 0;
+      _cleanupResources();
+    } catch (e) {
+      if (typeof console !== 'undefined') {
+        console.error('Logger clear buffer error:', e.message);
+      }
+    }
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Get buffer size
+   * @returns {number} - Current buffer size
+   */
+  var getBufferSize = function () {
+    return logBuffer.length;
+  };
+
+
+
+
+
   /* ================================================================ */
   /* Return public API */
   /* ================================================================ */
   return {
-    /**
-     * Main logging function (equivalent to logger.log in PL/SQL)
-     * @param {string} text - The log message
-     * @param {string} scope - The scope/context
-     * @param {Object} extra - Extra data
-     * @param {string} level - The log level
-     */
-    log: function (text, scope, extra, level) {
-      try {
-        var logEntry = _createLogEntry(text, scope, extra, level);
+    // Core logging functions
+    log: log,
+    error: error,
+    warning: warning,
 
-        if (!_shouldLog(logEntry.level)) return;
+    // Timing functions
+    timeStart: timeStart,
+    timeStop: timeStop,
 
-        // Console output with colors
-        if (config.enableConsole) {
-          _outputToConsole(logEntry);
-        }
+    // Context functions
+    setContext: setContext,
+    clearContext: clearContext,
+    getContext: getContext,
 
-        // Buffer and server sync
-        _addToBuffer(logEntry);
-        _scheduleServerSync();
-      } catch (e) {
-        // Fallback logging if main logging fails
-        if (typeof console !== 'undefined') {
-          console.error('Logger error:', e.message);
-          console.log('Original message:', text);
-        }
-      }
-    },
+    // Configuration functions
+    setLevel: setLevel,
+    getLevel: getLevel,
+    configure: configure,
+    getConfig: getConfig,
 
-    /**
-     * Log error message
-     * @param {string} text - The error message
-     * @param {string} scope - The scope/context
-     * @param {Object} extra - Extra data
-     */
-    error: function (text, scope, extra) {
-      this.log(text, scope, extra, 'ERROR');
-    },
+    // Buffer functions
+    flush: flush,
+    clearBuffer: clearBuffer,
+    getBufferSize: getBufferSize
 
-    /**
-     * Log warning message
-     * @param {string} text - The warning message
-     * @param {string} scope - The scope/context
-     * @param {Object} extra - Extra data
-     */
-    warning: function (text, scope, extra) {
-      this.log(text, scope, extra, 'WARNING');
-    },
-
-
-
-    /**
-     * Start timing for a unit
-     * @param {string} unit - The timing unit name
-     */
-    timeStart: function (unit) {
-      timingUnits[unit] = performance.now();
-    },
-
-    /**
-     * Stop timing for a unit and log the result
-     * @param {string} unit - The timing unit name
-     * @param {string} scope - The scope/context
-     * @returns {number} - Time elapsed in milliseconds
-     */
-    timeStop: function (unit, scope) {
-      if (!timingUnits[unit]) {
-        console.warn(`Timing unit '${unit}' was not started`);
-        return 0;
-      }
-
-      var elapsed = performance.now() - timingUnits[unit];
-      var message = `${unit} completed in ${elapsed.toFixed(2)}ms`;
-
-      this.log(message, scope, { unit: unit, elapsed: elapsed }, 'TIMING');
-
-      delete timingUnits[unit];
-      return elapsed;
-    },
-
-    /**
-     * Set current context for logging
-     * @param {string} scope - The context scope
-     * @param {Object} data - Context data
-     */
-    setContext: function (scope, data) {
-      currentContext = {
-        scope: scope,
-        data: data || {},
-        timestamp: new Date().toISOString()
-      };
-    },
-
-    /**
-     * Clear current context
-     */
-    clearContext: function () {
-      currentContext = null;
-    },
-
-    /**
-     * Get current context
-     * @returns {Object|null} - Current context or null
-     */
-    getContext: function () {
-      return currentContext;
-    },
-
-    /**
-     * Set log level
-     * @param {string} level - The log level to set
-     */
-    setLevel: function (level) {
-      if (LOG_LEVELS[level.toUpperCase()] !== undefined) {
-        config.level = level.toUpperCase();
-      } else {
-        console.warn(`Invalid log level: ${level}`);
-      }
-    },
-
-    /**
-     * Get current log level
-     * @returns {string} - Current log level
-     */
-    getLevel: function () {
-      return config.level;
-    },
-
-    /**
-     * Configure logger options
-     * @param {Object} options - Configuration options
-     */
-    configure: function (options) {
-      Object.assign(config, options);
-    },
-
-    /**
-     * Get current configuration
-     * @returns {Object} - Current configuration
-     */
-    getConfig: function () {
-      return Object.assign({}, config);
-    },
-
-    /**
-     * Flush buffer immediately with error handling
-     */
-    flush: function () {
-      try {
-        _flushBuffer();
-      } catch (e) {
-        if (typeof console !== 'undefined') {
-          console.error('Logger flush error:', e.message);
-        }
-      }
-    },
-
-    /**
-     * Clear buffer with memory cleanup
-     */
-    clearBuffer: function () {
-      try {
-        logBuffer.length = 0;
-        _cleanupResources();
-      } catch (e) {
-        if (typeof console !== 'undefined') {
-          console.error('Logger clear buffer error:', e.message);
-        }
-      }
-    },
-
-    /**
-     * Get buffer size
-     * @returns {number} - Current buffer size
-     */
-    getBufferSize: function () {
-      return logBuffer.length;
-    }
   };
 
-})(namespace, window.jQuery || window.$ || function () { });
-
-// Auto cleanup every 5 minutes to prevent memory leaks
-if (typeof setInterval !== 'undefined') {
-  setInterval(function () {
-    if (namespace.logger && namespace.logger.clearBuffer) {
+  /* ================================================================ */
+  // Auto cleanup initialization
+  if (typeof setInterval !== 'undefined') {
+    setInterval(function () {
       try {
-        // This will trigger _cleanupResources internally
-        if (namespace.logger.getBufferSize && namespace.logger.getBufferSize() > 0) {
-          // Only cleanup if there are items in buffer
-          var currentSize = namespace.logger.getBufferSize();
-          if (currentSize > 50) { // Only cleanup if buffer is getting large
-            namespace.logger.clearBuffer();
-          }
-        }
+        _cleanupResources();
       } catch (e) {
         // Silent cleanup failure
       }
-    }
-  }, 5 * 60 * 1000); // 5 minutes
-}
+    }, 5 * 60 * 1000); // 5 minutes
+  }
+
+})(namespace, window.jQuery || window.$ || function () { });
