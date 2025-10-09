@@ -46,18 +46,7 @@ namespace.logger = (function (namespace, $, undefined) {
     APEX: 128
   };
 
-  // Level names for easy access
-  var LEVEL_NAMES = {
-    0: 'OFF',
-    1: 'PERMANENT',
-    2: 'ERROR',
-    4: 'WARNING',
-    8: 'INFORMATION',
-    16: 'DEBUG',
-    32: 'TIMING',
-    64: 'SYS_CONTEXT',
-    128: 'APEX'
-  };
+
 
   /* ================================================================ */
   /**
@@ -191,28 +180,32 @@ namespace.logger = (function (namespace, $, undefined) {
 
     var message = `[${timestamp}] ${scope} ${logEntry.text}${extra}${context}`;
 
-    // Use appropriate console method with colors
+    // Get styles from config (single source of truth)
+    var consoleConfig = namespace.loggerConfig.getConsoleConfig();
+    var styles = consoleConfig.levelStyles;
+
+    // Use appropriate console method with styles from config
     switch (level) {
       case 'ERROR':
         console.error(`%c[${timestamp}] ERROR%c ${scope} ${logEntry.text}${extra}${context}`,
-          'color: #ff0000; font-weight: bold', 'color: inherit');
+          styles.ERROR, 'color: inherit');
         break;
       case 'WARNING':
         console.warn(`%c[${timestamp}] WARNING%c ${scope} ${logEntry.text}${extra}${context}`,
-          'color: #ffa500; font-weight: bold', 'color: inherit');
+          styles.WARNING, 'color: inherit');
         break;
       case 'PERMANENT':
         console.log(`%c[${timestamp}] PERMANENT%c ${scope} ${logEntry.text}${extra}${context}`,
-          'color: #ff00ff; font-weight: bold; background: #ffff00', 'color: inherit');
+          styles.PERMANENT, 'color: inherit');
         break;
       case 'TIMING':
         console.log(`%c[${timestamp}] TIMING%c ${scope} ${logEntry.text}${extra}${context}`,
-          'color: #008000; font-weight: bold', 'color: inherit');
+          styles.TIMING, 'color: inherit');
         break;
       case 'INFORMATION':
       default:
         console.log(`%c[${timestamp}] INFO%c ${scope} ${logEntry.text}${extra}${context}`,
-          'color: #0066cc; font-weight: bold', 'color: inherit');
+          styles.INFORMATION, 'color: inherit');
         break;
     }
   };
