@@ -468,7 +468,7 @@ namespace.logger = (function (namespace, $, undefined) {
 
   /* ================================================================ */
   /**
-   * Main logging function (equivalent to logger.log in PL/SQL)
+   * Console-only logging function (no database storage)
    * @author Angel O. Flores Torres
    * @created 2024
    *
@@ -483,14 +483,10 @@ namespace.logger = (function (namespace, $, undefined) {
 
       if (!_shouldLog(logEntry.level)) return;
 
-      // Console output with colors
+      // Console output only - no server sync
       if (config.enableConsole) {
         _outputToConsole(logEntry);
       }
-
-      // Buffer and server sync
-      _addToBuffer(logEntry);
-      _scheduleServerSync();
     } catch (e) {
       // Fallback logging if main logging fails
       if (typeof console !== 'undefined') {
@@ -506,7 +502,45 @@ namespace.logger = (function (namespace, $, undefined) {
 
   /* ================================================================ */
   /**
-   * Log error message
+   * Server logging function (includes database storage)
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
+   * @param {string} text - The log message
+   * @param {string} scope - The scope/context
+   * @param {Object} extra - Extra data
+   * @param {string} level - The log level (default: 'INFORMATION')
+   */
+  var logServer = function (text, scope, extra, level) {
+    try {
+      var logEntry = _createLogEntry(text, scope, extra, level);
+
+      if (!_shouldLog(logEntry.level)) return;
+
+      // Console output with colors
+      if (config.enableConsole) {
+        _outputToConsole(logEntry);
+      }
+
+      // Buffer and server sync for database storage
+      _addToBuffer(logEntry);
+      _scheduleServerSync();
+    } catch (e) {
+      // Fallback logging if main logging fails
+      if (typeof console !== 'undefined') {
+        console.error('Logger server error:', e.message);
+        console.log('Original message:', text);
+      }
+    }
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Console-only error logging
    * @author Angel O. Flores Torres
    * @created 2024
    *
@@ -524,7 +558,7 @@ namespace.logger = (function (namespace, $, undefined) {
 
   /* ================================================================ */
   /**
-   * Log warning message
+   * Console-only warning logging
    * @author Angel O. Flores Torres
    * @created 2024
    *
@@ -558,7 +592,7 @@ namespace.logger = (function (namespace, $, undefined) {
 
   /* ================================================================ */
   /**
-   * Stop timing for a unit and log the result
+   * Stop timing for a unit and log the result (console-only)
    * @param {string} unit - The timing unit name
    * @param {string} scope - The scope/context
    * @returns {number} - Time elapsed in milliseconds
@@ -573,6 +607,32 @@ namespace.logger = (function (namespace, $, undefined) {
     var message = `${unit} completed in ${elapsed.toFixed(2)}ms`;
 
     log(message, scope, { unit: unit, elapsed: elapsed }, 'TIMING');
+
+    delete timingUnits[unit];
+    return elapsed;
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Stop timing for a unit and log to server (includes database storage)
+   * @param {string} unit - The timing unit name
+   * @param {string} scope - The scope/context
+   * @returns {number} - Time elapsed in milliseconds
+   */
+  var timeStopServer = function (unit, scope) {
+    if (!timingUnits[unit]) {
+      console.warn(`Timing unit '${unit}' was not started`);
+      return 0;
+    }
+
+    var elapsed = performance.now() - timingUnits[unit];
+    var message = `${unit} completed in ${elapsed.toFixed(2)}ms`;
+
+    logServer(message, scope, { unit: unit, elapsed: elapsed }, 'TIMING');
 
     delete timingUnits[unit];
     return elapsed;
@@ -735,30 +795,34 @@ namespace.logger = (function (namespace, $, undefined) {
   /* Return public API */
   /* ================================================================ */
   return {
-    // Core logging functions
-    log: log,
-    error: error,
-    warning: warning,
+    // Console-only logging functions
+    log: log, //  namespace.logger.log("API response received", "ajax", { status: 200, data: "success" }, "INFORMATION");
+    error: error, // namespace.logger.error("Validation failed", "form-validation", { field: "email", value: "" });
+    warning: warning, // namespace.logger.warning("Deprecated function used", "legacy-code", { function: "oldMethod" });
+
+    // Server logging functions (includes database storage)
+    logServer: logServer, // namespace.logger.logServer("User login successful", "authentication", { userId: 123, ip: "192.168.1.1" }, "INFO");
 
     // Timing functions
-    timeStart: timeStart,
-    timeStop: timeStop,
+    timeStart: timeStart, // namespace.logger.timeStart("page-load");
+    timeStop: timeStop, // namespace.logger.timeStop("page-load", "performance");
+    timeStopServer: timeStopServer, // namespace.logger.timeStopServer("database-query", "production-performance");
 
     // Context functions
-    setContext: setContext,
-    clearContext: clearContext,
-    getContext: getContext,
+    setContext: setContext, // namespace.logger.setContext("checkout-process", { userId: 123, cartTotal: 99.99, step: "payment" });
+    clearContext: clearContext, // namespace.logger.clearContext();
+    getContext: getContext, // var context = namespace.logger.getContext();
 
     // Configuration functions
-    setLevel: setLevel,
-    getLevel: getLevel,
-    configure: configure,
-    getConfig: getConfig,
+    setLevel: setLevel, // namespace.logger.setLevel("DEBUG");
+    getLevel: getLevel, // var level = namespace.logger.getLevel();
+    configure: configure, // namespace.logger.configure({ enableConsole: true, bufferSize: 50, enableDataMasking: true });
+    getConfig: getConfig, // var config = namespace.logger.getConfig();
 
-    // Buffer functions
-    flush: flush,
-    clearBuffer: clearBuffer,
-    getBufferSize: getBufferSize
+    // Buffer functions (for server logging only)
+    flush: flush, // namespace.logger.flush();
+    clearBuffer: clearBuffer, // namespace.logger.clearBuffer();
+    getBufferSize: getBufferSize // var size = namespace.logger.getBufferSize();
 
   };
 
