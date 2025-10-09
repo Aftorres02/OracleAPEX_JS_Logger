@@ -792,6 +792,75 @@ namespace.logger = (function (namespace, $, undefined) {
 
 
   /* ================================================================ */
+  /**
+   * Enable or disable console output
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
+   * @param {boolean} enabled - Whether to enable console output
+   */
+  var enableConsole = function (enabled) {
+    config.enableConsole = enabled;
+    console.log('Logger console output ' + (enabled ? 'enabled' : 'disabled'));
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Check if console output is enabled
+   * @returns {boolean} - Current console output status
+   */
+  var isConsoleEnabled = function () {
+    return config.enableConsole;
+  };
+
+
+
+
+
+  /* ================================================================ */
+  /**
+   * Create a module logger with pre-configured scope
+   * @author Angel O. Flores Torres
+   * @created 2024
+   *
+   * @param {string} moduleName - The module name (becomes the scope)
+   * @returns {Object} - Module logger with all logging methods
+   */
+  var createModuleLogger = function (moduleName) {
+    return {
+      log: function (text, extra, level) {
+        log(text, moduleName, extra, level);
+      },
+      error: function (text, extra) {
+        error(text, moduleName, extra);
+      },
+      warning: function (text, extra) {
+        warning(text, moduleName, extra);
+      },
+      logServer: function (text, extra, level) {
+        logServer(text, moduleName, extra, level);
+      },
+      timeStart: function (unit) {
+        timeStart(unit);
+      },
+      timeStop: function (unit) {
+        return timeStop(unit, moduleName);
+      },
+      timeStopServer: function (unit) {
+        return timeStopServer(unit, moduleName);
+      }
+    };
+  };
+
+
+
+
+
+  /* ================================================================ */
   /* Return public API */
   /* ================================================================ */
   return {
@@ -822,7 +891,14 @@ namespace.logger = (function (namespace, $, undefined) {
     // Buffer functions (for server logging only)
     flush: flush, // namespace.logger.flush();
     clearBuffer: clearBuffer, // namespace.logger.clearBuffer();
-    getBufferSize: getBufferSize // var size = namespace.logger.getBufferSize();
+    getBufferSize: getBufferSize, // var size = namespace.logger.getBufferSize();
+
+    // Console control functions
+    enableConsole: enableConsole, // namespace.logger.enableConsole(false);
+    isConsoleEnabled: isConsoleEnabled, // var consoleEnabled = namespace.logger.isConsoleEnabled();
+
+    // Module logger factory
+    createModuleLogger: createModuleLogger // var logger = namespace.logger.createModuleLogger('PaymentModule');
 
   };
 
