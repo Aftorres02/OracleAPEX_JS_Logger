@@ -35,7 +35,6 @@ namespace.logger = (function (namespace, $, undefined) {
   var logBuffer = [];
   var flushTimer = null;
   var timingUnits = {};
-  var currentContext = null;
 
   /* ================================================================ */
   // Log levels (same as Oracle Logger)
@@ -188,7 +187,7 @@ namespace.logger = (function (namespace, $, undefined) {
         apex.server.process('LOG_ENTRY', {
           x01: logEntry.level,
           x02: logEntry.text,
-          x03: logEntry.scope || 'JS_LOGGER',
+          x03: logEntry.module || 'JS_LOGGER',
           x04: JSON.stringify(logEntry.extra || {}),
           x05: logEntry.timestamp,
           x06: logEntry.user,
@@ -245,11 +244,10 @@ namespace.logger = (function (namespace, $, undefined) {
   var _outputToConsole = function (logEntry) {
     var timestamp = new Date(logEntry.timestamp).toLocaleTimeString();
     var level = logEntry.level.toUpperCase();
-    var scope = logEntry.scope ? `[${logEntry.scope}]` : '';
+    var module = logEntry.module ? `[${logEntry.module}]` : '';
     var extra = logEntry.extra ? ` ${JSON.stringify(logEntry.extra)}` : '';
-    var context = logEntry.context ? ` Context: ${JSON.stringify(logEntry.context)}` : '';
 
-    var message = `[${timestamp}] ${scope} ${logEntry.text}${extra}${context}`;
+    var message = `[${timestamp}] ${module} ${logEntry.text}${extra}`;
 
     // Get styles from config (single source of truth)
     var consoleConfig = namespace.loggerConfig.getConsoleConfig();
@@ -258,24 +256,24 @@ namespace.logger = (function (namespace, $, undefined) {
     // Use appropriate console method with styles from config
     switch (level) {
       case 'ERROR':
-        console.error(`%c[${timestamp}] ERROR%c ${scope} ${logEntry.text}${extra}${context}`,
+        console.error(`%c[${timestamp}] ERROR%c ${module} ${logEntry.text}${extra}`,
           styles.ERROR, 'color: inherit');
         break;
       case 'WARNING':
-        console.warn(`%c[${timestamp}] WARNING%c ${scope} ${logEntry.text}${extra}${context}`,
+        console.warn(`%c[${timestamp}] WARNING%c ${module} ${logEntry.text}${extra}`,
           styles.WARNING, 'color: inherit');
         break;
       case 'PERMANENT':
-        console.log(`%c[${timestamp}] PERMANENT%c ${scope} ${logEntry.text}${extra}${context}`,
+        console.log(`%c[${timestamp}] PERMANENT%c ${module} ${logEntry.text}${extra}`,
           styles.PERMANENT, 'color: inherit');
         break;
       case 'TIMING':
-        console.log(`%c[${timestamp}] TIMING%c ${scope} ${logEntry.text}${extra}${context}`,
+        console.log(`%c[${timestamp}] TIMING%c ${module} ${logEntry.text}${extra}`,
           styles.TIMING, 'color: inherit');
         break;
       case 'INFORMATION':
       default:
-        console.log(`%c[${timestamp}] INFO%c ${scope} ${logEntry.text}${extra}${context}`,
+        console.log(`%c[${timestamp}] INFO%c ${module} ${logEntry.text}${extra}`,
           styles.INFORMATION, 'color: inherit');
         break;
     }
@@ -300,11 +298,10 @@ namespace.logger = (function (namespace, $, undefined) {
   var _formatConsoleMessage = function (logEntry) {
     var timestamp = new Date(logEntry.timestamp).toLocaleTimeString();
     var level = logEntry.level.toUpperCase();
-    var scope = logEntry.scope ? `[${logEntry.scope}]` : '';
+    var module = logEntry.module ? `[${logEntry.module}]` : '';
     var extra = logEntry.extra ? ` ${JSON.stringify(logEntry.extra)}` : '';
-    var context = logEntry.context ? ` Context: ${JSON.stringify(logEntry.context)}` : '';
 
-    return `[${timestamp}] ${level} ${scope} ${logEntry.text}${extra}${context}`;
+    return `[${timestamp}] ${level} ${module} ${logEntry.text}${extra}`;
   };
 
 
@@ -434,28 +431,25 @@ namespace.logger = (function (namespace, $, undefined) {
    * @created 2024
    *
    * @param {string} text - The log message
-   * @param {string} scope - The scope/context
+   * @param {string} module - The module name
    * @param {Object} extra - Extra data
    * @param {string} level - The log level
    *
    * @returns {Object} - Formatted log entry
    */
-  var _createLogEntry = function (text, scope, extra, level) {
+  var _createLogEntry = function (text, module, extra, level) {
     var logEntry = {
       timestamp: new Date().toISOString(),
       level: level || 'INFORMATION',
       text: text,
-      scope: scope,
+      module: module,
       extra: _sanitizeData(extra),
       user: (typeof apex !== 'undefined' && apex.env && apex.env.APP_USER) || 'UNKNOWN',
       page: (typeof apex !== 'undefined' && apex.env && apex.env.APP_PAGE_ID) || 0,
       session: (typeof apex !== 'undefined' && apex.env && apex.env.APP_SESSION) || 0
     };
 
-    // Add context if available
-    if (currentContext) {
-      logEntry.context = currentContext;
-    }
+    // No context needed - module name is the context
 
     return logEntry;
   };
@@ -468,18 +462,17 @@ namespace.logger = (function (namespace, $, undefined) {
 
   /* ================================================================ */
   /**
-   * Console-only logging function (no database storage)
+   * Console-only logging function (no database storage) - Always INFORMATION level
    * @author Angel O. Flores Torres
    * @created 2024
    *
    * @param {string} text - The log message
-   * @param {string} scope - The scope/context
+   * @param {string} module - The module name
    * @param {Object} extra - Extra data
-   * @param {string} level - The log level
    */
-  var log = function (text, scope, extra, level) {
+  var log = function (text, module, extra) {
     try {
-      var logEntry = _createLogEntry(text, scope, extra, level);
+      var logEntry = _createLogEntry(text, module, extra, 'INFORMATION');
 
       if (!_shouldLog(logEntry.level)) return;
 
@@ -502,18 +495,17 @@ namespace.logger = (function (namespace, $, undefined) {
 
   /* ================================================================ */
   /**
-   * Server logging function (includes database storage)
+   * Server logging function (includes database storage) - Always INFORMATION level
    * @author Angel O. Flores Torres
    * @created 2024
    *
    * @param {string} text - The log message
-   * @param {string} scope - The scope/context
+   * @param {string} module - The module name
    * @param {Object} extra - Extra data
-   * @param {string} level - The log level (default: 'INFORMATION')
    */
-  var logServer = function (text, scope, extra, level) {
+  var logServer = function (text, module, extra) {
     try {
-      var logEntry = _createLogEntry(text, scope, extra, level);
+      var logEntry = _createLogEntry(text, module, extra, 'INFORMATION');
 
       if (!_shouldLog(logEntry.level)) return;
 
@@ -545,11 +537,26 @@ namespace.logger = (function (namespace, $, undefined) {
    * @created 2024
    *
    * @param {string} text - The error message
-   * @param {string} scope - The scope/context
+   * @param {string} module - The module name
    * @param {Object} extra - Extra data
    */
-  var error = function (text, scope, extra) {
-    log(text, scope, extra, 'ERROR');
+  var error = function (text, module, extra) {
+    try {
+      var logEntry = _createLogEntry(text, module, extra, 'ERROR');
+
+      if (!_shouldLog(logEntry.level)) return;
+
+      // Console output only - no server sync
+      if (config.enableConsole) {
+        _outputToConsole(logEntry);
+      }
+    } catch (e) {
+      // Fallback logging if main logging fails
+      if (typeof console !== 'undefined') {
+        console.error('Logger error:', e.message);
+        console.log('Original message:', text);
+      }
+    }
   };
 
 
@@ -563,11 +570,26 @@ namespace.logger = (function (namespace, $, undefined) {
    * @created 2024
    *
    * @param {string} text - The warning message
-   * @param {string} scope - The scope/context
+   * @param {string} module - The module name
    * @param {Object} extra - Extra data
    */
-  var warning = function (text, scope, extra) {
-    log(text, scope, extra, 'WARNING');
+  var warning = function (text, module, extra) {
+    try {
+      var logEntry = _createLogEntry(text, module, extra, 'WARNING');
+
+      if (!_shouldLog(logEntry.level)) return;
+
+      // Console output only - no server sync
+      if (config.enableConsole) {
+        _outputToConsole(logEntry);
+      }
+    } catch (e) {
+      // Fallback logging if main logging fails
+      if (typeof console !== 'undefined') {
+        console.error('Logger error:', e.message);
+        console.log('Original message:', text);
+      }
+    }
   };
 
 
@@ -594,10 +616,10 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Stop timing for a unit and log the result (console-only)
    * @param {string} unit - The timing unit name
-   * @param {string} scope - The scope/context
+   * @param {string} module - The module name
    * @returns {number} - Time elapsed in milliseconds
    */
-  var timeStop = function (unit, scope) {
+  var timeStop = function (unit, module) {
     if (!timingUnits[unit]) {
       console.warn(`Timing unit '${unit}' was not started`);
       return 0;
@@ -606,7 +628,7 @@ namespace.logger = (function (namespace, $, undefined) {
     var elapsed = performance.now() - timingUnits[unit];
     var message = `${unit} completed in ${elapsed.toFixed(2)}ms`;
 
-    log(message, scope, { unit: unit, elapsed: elapsed }, 'TIMING');
+    log(message, module, { unit: unit, elapsed: elapsed });
 
     delete timingUnits[unit];
     return elapsed;
@@ -620,10 +642,10 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Stop timing for a unit and log to server (includes database storage)
    * @param {string} unit - The timing unit name
-   * @param {string} scope - The scope/context
+   * @param {string} module - The module name
    * @returns {number} - Time elapsed in milliseconds
    */
-  var timeStopServer = function (unit, scope) {
+  var timeStopServer = function (unit, module) {
     if (!timingUnits[unit]) {
       console.warn(`Timing unit '${unit}' was not started`);
       return 0;
@@ -632,7 +654,7 @@ namespace.logger = (function (namespace, $, undefined) {
     var elapsed = performance.now() - timingUnits[unit];
     var message = `${unit} completed in ${elapsed.toFixed(2)}ms`;
 
-    logServer(message, scope, { unit: unit, elapsed: elapsed }, 'TIMING');
+    logServer(message, module, { unit: unit, elapsed: elapsed });
 
     delete timingUnits[unit];
     return elapsed;
@@ -642,44 +664,7 @@ namespace.logger = (function (namespace, $, undefined) {
 
 
 
-  /* ================================================================ */
-  /**
-   * Set current context for logging
-   * @param {string} scope - The context scope
-   * @param {Object} data - Context data
-   */
-  var setContext = function (scope, data) {
-    currentContext = {
-      scope: scope,
-      data: data || {},
-      timestamp: new Date().toISOString()
-    };
-  };
 
-
-
-
-
-  /* ================================================================ */
-  /**
-   * Clear current context
-   */
-  var clearContext = function () {
-    currentContext = null;
-  };
-
-
-
-
-
-  /* ================================================================ */
-  /**
-   * Get current context
-   * @returns {Object|null} - Current context or null
-   */
-  var getContext = function () {
-    return currentContext;
-  };
 
 
 
@@ -823,7 +808,7 @@ namespace.logger = (function (namespace, $, undefined) {
 
   /* ================================================================ */
   /**
-   * Create a module logger with pre-configured scope
+   * Create a module logger with pre-configured scope and persistent extra data
    * @author Angel O. Flores Torres
    * @created 2024
    *
@@ -831,18 +816,33 @@ namespace.logger = (function (namespace, $, undefined) {
    * @returns {Object} - Module logger with all logging methods
    */
   var createModuleLogger = function (moduleName) {
+    var moduleExtra = {};  // Persistent extra data for this module
+
     return {
-      log: function (text, extra, level) {
-        log(text, moduleName, extra, level);
+      setExtra: function (extraData) {
+        moduleExtra = extraData || {};
+      },
+      clearExtra: function () {
+        moduleExtra = {};
+      },
+      getExtra: function () {
+        return Object.assign({}, moduleExtra);
+      },
+      log: function (text, extra) {
+        var combinedExtra = Object.assign({}, moduleExtra, extra || {});
+        log(text, moduleName, combinedExtra);
       },
       error: function (text, extra) {
-        error(text, moduleName, extra);
+        var combinedExtra = Object.assign({}, moduleExtra, extra || {});
+        error(text, moduleName, combinedExtra);
       },
       warning: function (text, extra) {
-        warning(text, moduleName, extra);
+        var combinedExtra = Object.assign({}, moduleExtra, extra || {});
+        warning(text, moduleName, combinedExtra);
       },
-      logServer: function (text, extra, level) {
-        logServer(text, moduleName, extra, level);
+      logServer: function (text, extra) {
+        var combinedExtra = Object.assign({}, moduleExtra, extra || {});
+        logServer(text, moduleName, combinedExtra);
       },
       timeStart: function (unit) {
         timeStart(unit);
@@ -865,22 +865,17 @@ namespace.logger = (function (namespace, $, undefined) {
   /* ================================================================ */
   return {
     // Console-only logging functions
-    log: log, //  namespace.logger.log("API response received", "ajax", { status: 200, data: "success" }, "INFORMATION");
+    log: log, //  namespace.logger.log("API response received", "ajax", { status: 200, data: "success" });
     error: error, // namespace.logger.error("Validation failed", "form-validation", { field: "email", value: "" });
     warning: warning, // namespace.logger.warning("Deprecated function used", "legacy-code", { function: "oldMethod" });
 
     // Server logging functions (includes database storage)
-    logServer: logServer, // namespace.logger.logServer("User login successful", "authentication", { userId: 123, ip: "192.168.1.1" }, "INFO");
+    logServer: logServer, // namespace.logger.logServer("User login successful", "authentication", { userId: 123, ip: "192.168.1.1" });
 
     // Timing functions
     timeStart: timeStart, // namespace.logger.timeStart("page-load");
     timeStop: timeStop, // namespace.logger.timeStop("page-load", "performance");
     timeStopServer: timeStopServer, // namespace.logger.timeStopServer("database-query", "production-performance");
-
-    // Context functions
-    setContext: setContext, // namespace.logger.setContext("checkout-process", { userId: 123, cartTotal: 99.99, step: "payment" });
-    clearContext: clearContext, // namespace.logger.clearContext();
-    getContext: getContext, // var context = namespace.logger.getContext();
 
     // Configuration functions
     setLevel: setLevel, // namespace.logger.setLevel("DEBUG");
