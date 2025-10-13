@@ -218,7 +218,6 @@ namespace.loggerConfig = (function (namespace, undefined) {
     getEnhancedConfig: getEnhancedConfig,
 
     // Validation functions
-    isValidLevel: isValidLevel,
     validateConfig: validateConfig
   };
 

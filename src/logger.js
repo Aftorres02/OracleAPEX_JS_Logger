@@ -6,7 +6,7 @@ var namespace = namespace || {};
  * @module logger
  * ==========================================================================
  * @author Angel O. Flores Torres
- * @created 2024
+ * @created 2025
  * @version 1.0
  */
 // Create object for logger functions
@@ -62,7 +62,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Check if a log level should be logged based on current configuration
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {string|number} level - The log level to check
    *
@@ -96,7 +96,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Add log entry to buffer
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {Object} logEntry - The log entry to add
    */
@@ -121,7 +121,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Schedule server sync for buffered logs
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    */
   var _scheduleServerSync = function () {
     if (!config.enableServer || !config.enableBuffer) return;
@@ -148,7 +148,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Flush buffer to server
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    */
   var _flushBuffer = function () {
     if (logBuffer.length === 0) return;
@@ -172,7 +172,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Send log entry to server via AJAX with enhanced error handling
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {Object} logEntry - The log entry to send
    */
@@ -237,7 +237,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Output log entry to console with colors and appropriate console method
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {Object} logEntry - The log entry to output
    */
@@ -289,7 +289,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Format log entry for console output (fallback for server errors)
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {Object} logEntry - The log entry to format
    *
@@ -314,7 +314,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Sanitize data to prevent issues with circular references and size limits
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {*} data - The data to sanitize
    *
@@ -359,7 +359,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Mask sensitive fields in data
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {*} data - The data to mask
    *
@@ -401,7 +401,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Clean up resources to prevent memory leaks
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    */
   var _cleanupResources = function () {
     // Clean up old timing units (keep only last maxTimingUnits)
@@ -428,7 +428,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Create log entry object with enhanced features
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {string} text - The log message
    * @param {string} module - The module name
@@ -464,7 +464,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Console-only logging function (no database storage) - Always INFORMATION level
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {string} text - The log message
    * @param {string} module - The module name
@@ -497,7 +497,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Server logging function (includes database storage) - Always INFORMATION level
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {string} text - The log message
    * @param {string} module - The module name
@@ -534,7 +534,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Console-only error logging
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {string} text - The error message
    * @param {string} module - The module name
@@ -567,7 +567,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Console-only warning logging
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {string} text - The warning message
    * @param {string} module - The module name
@@ -600,7 +600,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Start timing for a unit
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {string} unit - The timing unit name
    */
@@ -633,6 +633,9 @@ namespace.logger = (function (namespace, $, undefined) {
     delete timingUnits[unit];
     return elapsed;
   };
+
+
+
 
 
 
@@ -780,7 +783,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Enable or disable console output
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {boolean} enabled - Whether to enable console output
    */
@@ -810,7 +813,7 @@ namespace.logger = (function (namespace, $, undefined) {
   /**
    * Create a module logger with pre-configured scope and persistent extra data
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {string} moduleName - The module name (becomes the scope)
    * @returns {Object} - Module logger with all logging methods
@@ -897,16 +900,5 @@ namespace.logger = (function (namespace, $, undefined) {
 
   };
 
-  /* ================================================================ */
-  // Auto cleanup initialization
-  if (typeof setInterval !== 'undefined') {
-    setInterval(function () {
-      try {
-        _cleanupResources();
-      } catch (e) {
-        // Silent cleanup failure
-      }
-    }, 5 * 60 * 1000); // 5 minutes
-  }
 
 })(namespace, window.jQuery || window.$ || function () { });

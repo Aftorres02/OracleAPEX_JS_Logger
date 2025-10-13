@@ -21,17 +21,27 @@ Include the library files in your Oracle APEX application:
 ### Basic Usage
 
 ```javascript
-// Configure the logger
+// Configure the logger (optional - works out of the box)
 namespace.logger.configure({
-  level: 'INFO',
+  level: 'INFORMATION',
   enableConsole: true,
   enableServer: true
 });
 
-// Log messages
-namespace.logger.info('User logged in', 'authentication', { user_id: 123 });
-namespace.logger.error('Database connection failed', 'database');
-namespace.logger.debug('Processing data', 'data_processing');
+// Log messages with automatic colors in console
+namespace.logger.log('User logged in', 'authentication', { user_id: 123 });     // Blue INFO
+namespace.logger.error('Database connection failed', 'database');                // Red ERROR  
+namespace.logger.warning('Slow query detected', 'performance', { duration: 5000 }); // Orange WARNING
+
+// New context management
+namespace.logger.setContext('user_session', { session_id: 'abc123' });
+namespace.logger.log('Processing request', 'api'); // Includes context
+namespace.logger.clearContext();
+
+// Enhanced timing
+namespace.logger.timeStart('page_load');
+// ... do work ...
+namespace.logger.timeStop('page_load', 'performance'); // Green TIMING message
 ```
 
 ## 📚 Documentation
@@ -45,11 +55,24 @@ namespace.logger.debug('Processing data', 'data_processing');
 
 - **Oracle Logger Compatible** - Mimics Oracle Logger API and behavior
 - **APEX Integration** - Built specifically for Oracle APEX applications
-- **Multiple Log Levels** - ERROR, WARNING, INFO, DEBUG, TIMING, and more
+- **Multiple Log Levels** - ERROR, WARNING, INFORMATION, TIMING, PERMANENT
+- **Colored Console Output** - Different colors for each log level in browser console
+- **Enhanced Error Handling** - Graceful fallback when server is unavailable
+- **Data Sanitization** - Automatic masking of sensitive fields (passwords, tokens)
+- **Simple Context Management** - Set context for groups of related log entries
 - **Performance Timing** - Built-in timing functions for performance monitoring
-- **Context Management** - Push/pop context for structured logging
-- **Buffer Management** - Configurable buffering for server-side logging
+- **Memory Management** - Automatic cleanup to prevent memory leaks
 - **Environment Support** - Different configurations for dev/test/prod
+
+## 🎨 Console Colors
+
+The logger automatically uses different colors and console methods for each log level:
+
+- **ERROR** - Red text, uses `console.error()`
+- **WARNING** - Orange text, uses `console.warn()`  
+- **INFORMATION** - Blue text, uses `console.log()`
+- **TIMING** - Green text, uses `console.log()`
+- **PERMANENT** - Purple text with yellow background, uses `console.log()`
 
 ## 📁 Project Structure
 
