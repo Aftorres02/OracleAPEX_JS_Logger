@@ -19,15 +19,12 @@ namespace.loggerConfig = (function (namespace, undefined) {
     level: 'INFO',
     enableConsole: true,
     enableServer: true,
-    enableBuffer: true,
-    bufferSize: 100,
-    flushInterval: 30000,
     retryCount: 1,
-    // New security options
+    // Security options
     enableDataMasking: true,
     sensitiveFields: ['password', 'token', 'ssn'],
     maxDataSize: 10000,
-    // New cleanup option
+    // Cleanup option
     maxTimingUnits: 100
   };
 
@@ -54,9 +51,6 @@ namespace.loggerConfig = (function (namespace, undefined) {
       level: 'INFORMATION',
       enableConsole: true,
       enableServer: false,
-      enableBuffer: false,
-      bufferSize: 50,
-      flushInterval: 15000,
       enableDataMasking: false, // Less strict in dev
       maxDataSize: 50000 // Larger in dev for debugging
     },
@@ -64,9 +58,6 @@ namespace.loggerConfig = (function (namespace, undefined) {
       level: 'INFO',
       enableConsole: true,
       enableServer: true,
-      enableBuffer: true,
-      bufferSize: 200,
-      flushInterval: 60000,
       enableDataMasking: true,
       maxDataSize: 20000
     },
@@ -74,9 +65,6 @@ namespace.loggerConfig = (function (namespace, undefined) {
       level: 'WARNING',
       enableConsole: false,
       enableServer: true,
-      enableBuffer: true,
-      bufferSize: 500,
-      flushInterval: 120000,
       enableDataMasking: true, // Strict in production
       sensitiveFields: ['password', 'token', 'ssn', 'credit_card', 'api_key'],
       maxDataSize: 5000 // Smaller in production
@@ -160,15 +148,7 @@ namespace.loggerConfig = (function (namespace, undefined) {
       isValid = false;
     }
 
-    if (config.bufferSize && (typeof config.bufferSize !== 'number' || config.bufferSize < 1)) {
-      errors.push('bufferSize must be a positive number');
-      isValid = false;
-    }
 
-    if (config.flushInterval && (typeof config.flushInterval !== 'number' || config.flushInterval < 1000)) {
-      errors.push('flushInterval must be at least 1000ms');
-      isValid = false;
-    }
 
     if (config.maxDataSize && (typeof config.maxDataSize !== 'number' || config.maxDataSize < 100)) {
       errors.push('maxDataSize must be at least 100 bytes');

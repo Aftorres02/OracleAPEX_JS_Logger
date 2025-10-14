@@ -18,22 +18,17 @@ namespace.logger = (function (namespace, $, undefined) {
     level: 'INFORMATION',
     enableConsole: true,
     enableServer: true,
-    enableBuffer: true,
-    bufferSize: 100,
-    flushInterval: 30000,
     retryCount: 1,
-    // New security options
+    // Security options
     enableDataMasking: true,
     sensitiveFields: ['password', 'token', 'ssn'],
     maxDataSize: 10000,
-    // New cleanup option
+    // Cleanup option
     maxTimingUnits: 100
   };
 
   /* ================================================================ */
   // Private variables
-  var logBuffer = [];
-  var flushTimer = null;
   var timingUnits = {};
 
   /* ================================================================ */
@@ -92,73 +87,7 @@ namespace.logger = (function (namespace, $, undefined) {
 
 
 
-  /* ================================================================ */
-  /**
-   * Add log entry to buffer
-   * @author Angel O. Flores Torres
-   * @created 2025
-   *
-   * @param {Object} logEntry - The log entry to add
-   */
-  var _addToBuffer = function (logEntry) {
-    if (!config.enableBuffer) return;
 
-    logBuffer.push(logEntry);
-
-    if (logBuffer.length >= config.bufferSize) {
-      _flushBuffer();
-    }
-  };
-
-
-
-
-
-
-
-
-  /* ================================================================ */
-  /**
-   * Schedule server sync for buffered logs
-   * @author Angel O. Flores Torres
-   * @created 2025
-   */
-  var _scheduleServerSync = function () {
-    if (!config.enableServer || !config.enableBuffer) return;
-
-    if (flushTimer) {
-      clearTimeout(flushTimer);
-    }
-
-    flushTimer = setTimeout(function () {
-      _flushBuffer();
-    }, config.flushInterval);
-  };
-
-
-
-
-
-
-
-
-
-
-  /* ================================================================ */
-  /**
-   * Flush buffer to server
-   * @author Angel O. Flores Torres
-   * @created 2025
-   */
-  var _flushBuffer = function () {
-    if (logBuffer.length === 0) return;
-
-    var logsToSend = logBuffer.splice(0);
-
-    logsToSend.forEach(function (logEntry) {
-      _sendToServer(logEntry);
-    });
-  };
 
 
 
@@ -412,11 +341,6 @@ namespace.logger = (function (namespace, $, undefined) {
         delete timingUnits[key];
       });
     }
-
-    // Clean up buffer if too large
-    if (logBuffer.length > config.bufferSize * 2) {
-      logBuffer = logBuffer.slice(-config.bufferSize);
-    }
   };
 
 
@@ -514,9 +438,8 @@ namespace.logger = (function (namespace, $, undefined) {
         _outputToConsole(logEntry);
       }
 
-      // Buffer and server sync for database storage
-      _addToBuffer(logEntry);
-      _scheduleServerSync();
+      // Send directly to server (no buffering)
+      _sendToServer(logEntry);
     } catch (e) {
       // Fallback logging if main logging fails
       if (typeof console !== 'undefined') {
@@ -729,51 +652,7 @@ namespace.logger = (function (namespace, $, undefined) {
 
 
 
-  /* ================================================================ */
-  /**
-   * Flush buffer immediately with error handling
-   */
-  var flush = function () {
-    try {
-      _flushBuffer();
-    } catch (e) {
-      if (typeof console !== 'undefined') {
-        console.error('Logger flush error:', e.message);
-      }
-    }
-  };
 
-
-
-
-
-  /* ================================================================ */
-  /**
-   * Clear buffer with memory cleanup
-   */
-  var clearBuffer = function () {
-    try {
-      logBuffer.length = 0;
-      _cleanupResources();
-    } catch (e) {
-      if (typeof console !== 'undefined') {
-        console.error('Logger clear buffer error:', e.message);
-      }
-    }
-  };
-
-
-
-
-
-  /* ================================================================ */
-  /**
-   * Get buffer size
-   * @returns {number} - Current buffer size
-   */
-  var getBufferSize = function () {
-    return logBuffer.length;
-  };
 
 
 
@@ -886,10 +765,7 @@ namespace.logger = (function (namespace, $, undefined) {
     configure: configure, // namespace.logger.configure({ enableConsole: true, bufferSize: 50, enableDataMasking: true });
     getConfig: getConfig, // var config = namespace.logger.getConfig();
 
-    // Buffer functions (for server logging only)
-    flush: flush, // namespace.logger.flush();
-    clearBuffer: clearBuffer, // namespace.logger.clearBuffer();
-    getBufferSize: getBufferSize, // var size = namespace.logger.getBufferSize();
+
 
     // Console control functions
     enableConsole: enableConsole, // namespace.logger.enableConsole(false);
