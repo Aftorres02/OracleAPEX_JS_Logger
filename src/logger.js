@@ -10,50 +10,25 @@ var namespace = namespace || {};
  * @version 1.0
  */
 // Create object for logger functions
-namespace.logger = (function (namespace, $, undefined) {
+namespace.logger = (function (namespace) {
   'use strict';
 
-  // Configuration - Can be changed at runtime
-  var config = {
-    level: 'INFORMATION',
-    enableConsole: true,
-    enableServer: true,
-    retryCount: 1,
-    // Security options
-    enableDataMasking: true,
-    sensitiveFields: ['password', 'token', 'ssn'],
-    maxDataSize: 10000,
-    // Cleanup option
-    maxTimingUnits: 100
-  };
+  // Configuration - Initialize from logger-config
+  var config = namespace.loggerConfig.getEnhancedConfig();
 
   /* ================================================================ */
   // Private variables
   var timingUnits = {};
 
   /* ================================================================ */
-  // Log levels (same as Oracle Logger)
-  var LOG_LEVELS = {
-    OFF: 0,
-    PERMANENT: 1,
-    ERROR: 2,
-    WARNING: 4,
-    INFORMATION: 8,
-    DEBUG: 16,
-    TIMING: 32,
-    SYS_CONTEXT: 64,
-    APEX: 128
-  };
+  // Log levels - Use from logger-config
+  var LOG_LEVELS = namespace.loggerConfig.LOG_LEVELS;
 
+  /* ================================================================================================= */
+  /* ================================================================================================= */
+  /*                                           PRIVATE FUNCTIONS                                       */
+  /* ================================================================================================= */
 
-
-
-
-
-
-
-
-  /* ================================================================ */
   /**
    * Check if a log level should be logged based on current configuration
    * @author Angel O. Flores Torres
@@ -80,24 +55,6 @@ namespace.logger = (function (namespace, $, undefined) {
     return levelNum <= configNum;
   };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  /* ================================================================ */
   /**
    * Send log entry to server via AJAX with enhanced error handling
    * @author Angel O. Flores Torres
@@ -123,11 +80,11 @@ namespace.logger = (function (namespace, $, undefined) {
           x07: logEntry.page,
           x08: logEntry.session
         }, {
-          success: function (response) {
+          success: function () {
             // Success - reset any error flags
             config._serverError = false;
           },
-          error: function (xhr, status, error) {
+          error: function () {
             retryAttempts++;
             if (retryAttempts <= maxRetries) {
               // Exponential backoff retry
@@ -155,14 +112,6 @@ namespace.logger = (function (namespace, $, undefined) {
     attemptSend();
   };
 
-
-
-
-
-
-
-
-  /* ================================================================ */
   /**
    * Output log entry to console with colors and appropriate console method
    * @author Angel O. Flores Torres
@@ -208,13 +157,6 @@ namespace.logger = (function (namespace, $, undefined) {
     }
   };
 
-
-
-
-
-
-
-  /* ================================================================ */
   /**
    * Format log entry for console output (fallback for server errors)
    * @author Angel O. Flores Torres
@@ -233,13 +175,6 @@ namespace.logger = (function (namespace, $, undefined) {
     return `[${timestamp}] ${level} ${module} ${logEntry.text}${extra}`;
   };
 
-
-
-
-
-
-
-  /* ================================================================ */
   /**
    * Sanitize data to prevent issues with circular references and size limits
    * @author Angel O. Flores Torres
@@ -279,12 +214,6 @@ namespace.logger = (function (namespace, $, undefined) {
     }
   };
 
-
-
-
-
-
-  /* ================================================================ */
   /**
    * Mask sensitive fields in data
    * @author Angel O. Flores Torres
@@ -320,35 +249,6 @@ namespace.logger = (function (namespace, $, undefined) {
     return masked;
   };
 
-
-
-
-
-
-
-  /* ================================================================ */
-  /**
-   * Clean up resources to prevent memory leaks
-   * @author Angel O. Flores Torres
-   * @created 2025
-   */
-  var _cleanupResources = function () {
-    // Clean up old timing units (keep only last maxTimingUnits)
-    var timingKeys = Object.keys(timingUnits);
-    if (timingKeys.length > (config.maxTimingUnits || 100)) {
-      var toRemove = timingKeys.slice(0, timingKeys.length - config.maxTimingUnits);
-      toRemove.forEach(function (key) {
-        delete timingUnits[key];
-      });
-    }
-  };
-
-
-
-
-
-
-  /* ================================================================ */
   /**
    * Create log entry object with enhanced features
    * @author Angel O. Flores Torres
@@ -373,10 +273,12 @@ namespace.logger = (function (namespace, $, undefined) {
       session: (typeof apex !== 'undefined' && apex.env && apex.env.APP_SESSION) || 0
     };
 
-    // No context needed - module name is the context
-
     return logEntry;
   };
+
+  /* ================================================================================================= */
+  /*                                            PUBLIC FUNCTIONS                                       */
+  /* ================================================================================================= */
 
 
 
@@ -596,92 +498,20 @@ namespace.logger = (function (namespace, $, undefined) {
 
 
 
-  /* ================================================================ */
   /**
-   * Set log level
-   * @param {string} level - The log level to set
-   */
-  var setLevel = function (level) {
-    if (LOG_LEVELS[level.toUpperCase()] !== undefined) {
-      config.level = level.toUpperCase();
-    } else {
-      console.warn(`Invalid log level: ${level}`);
-    }
-  };
-
-
-
-
-
-  /* ================================================================ */
-  /**
-   * Get current log level
-   * @returns {string} - Current log level
-   */
-  var getLevel = function () {
-    return config.level;
-  };
-
-
-
-
-
-  /* ================================================================ */
-  /**
-   * Configure logger options
+   * Configure logger options (internal use)
    * @param {Object} options - Configuration options
    */
   var configure = function (options) {
     Object.assign(config, options);
   };
 
-
-
-
-
-  /* ================================================================ */
   /**
-   * Get current configuration
+   * Get current configuration (internal use)
    * @returns {Object} - Current configuration
    */
   var getConfig = function () {
     return Object.assign({}, config);
-  };
-
-
-
-
-
-
-
-
-
-
-
-  /* ================================================================ */
-  /**
-   * Enable or disable console output
-   * @author Angel O. Flores Torres
-   * @created 2025
-   *
-   * @param {boolean} enabled - Whether to enable console output
-   */
-  var enableConsole = function (enabled) {
-    config.enableConsole = enabled;
-    console.log('Logger console output ' + (enabled ? 'enabled' : 'disabled'));
-  };
-
-
-
-
-
-  /* ================================================================ */
-  /**
-   * Check if console output is enabled
-   * @returns {boolean} - Current console output status
-   */
-  var isConsoleEnabled = function () {
-    return config.enableConsole;
   };
 
 
@@ -759,17 +589,9 @@ namespace.logger = (function (namespace, $, undefined) {
     timeStop: timeStop, // namespace.logger.timeStop("page-load", "performance");
     timeStopServer: timeStopServer, // namespace.logger.timeStopServer("database-query", "production-performance");
 
-    // Configuration functions
-    setLevel: setLevel, // namespace.logger.setLevel("DEBUG");
-    getLevel: getLevel, // var level = namespace.logger.getLevel();
-    configure: configure, // namespace.logger.configure({ enableConsole: true, bufferSize: 50, enableDataMasking: true });
-    getConfig: getConfig, // var config = namespace.logger.getConfig();
-
-
-
-    // Console control functions
-    enableConsole: enableConsole, // namespace.logger.enableConsole(false);
-    isConsoleEnabled: isConsoleEnabled, // var consoleEnabled = namespace.logger.isConsoleEnabled();
+    // Internal configuration functions (use loggerConfig for public access)
+    configure: configure,
+    getConfig: getConfig,
 
     // Module logger factory
     createModuleLogger: createModuleLogger // var logger = namespace.logger.createModuleLogger('PaymentModule');
@@ -777,4 +599,4 @@ namespace.logger = (function (namespace, $, undefined) {
   };
 
 
-})(namespace, window.jQuery || window.$ || function () { });
+})(namespace);

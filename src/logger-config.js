@@ -16,7 +16,7 @@ namespace.loggerConfig = (function (namespace, undefined) {
   /* ================================================================ */
   // Default configuration values
   var DEFAULT_CONFIG = {
-    level: 'INFO',
+    level: 'INFORMATION',
     enableConsole: true,
     enableServer: true,
     retryCount: 1,
@@ -55,7 +55,7 @@ namespace.loggerConfig = (function (namespace, undefined) {
       maxDataSize: 50000 // Larger in dev for debugging
     },
     testing: {
-      level: 'INFO',
+      level: 'INFORMATION',
       enableConsole: true,
       enableServer: true,
       enableDataMasking: true,
@@ -189,6 +189,81 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
   /* ================================================================ */
+  /**
+   * Set log level
+   * @param {string} level - The log level to set
+   */
+  var setLevel = function (level) {
+    if (LOG_LEVELS[level.toUpperCase()] !== undefined) {
+      // Update the logger's config if it exists
+      if (typeof namespace.logger !== 'undefined' && namespace.logger.configure) {
+        namespace.logger.configure({ level: level.toUpperCase() });
+      }
+    } else {
+      console.warn('Invalid log level: ' + level);
+    }
+  };
+
+  /* ================================================================ */
+  /**
+   * Get current log level from logger
+   * @returns {string} - Current log level
+   */
+  var getLevel = function () {
+    if (typeof namespace.logger !== 'undefined' && namespace.logger.getConfig) {
+      return namespace.logger.getConfig().level;
+    }
+    return DEFAULT_CONFIG.level;
+  };
+
+  /* ================================================================ */
+  /**
+   * Configure logger options
+   * @param {Object} options - Configuration options
+   */
+  var configure = function (options) {
+    if (typeof namespace.logger !== 'undefined' && namespace.logger.configure) {
+      namespace.logger.configure(options);
+    }
+  };
+
+  /* ================================================================ */
+  /**
+   * Get current configuration from logger
+   * @returns {Object} - Current configuration
+   */
+  var getConfig = function () {
+    if (typeof namespace.logger !== 'undefined' && namespace.logger.getConfig) {
+      return namespace.logger.getConfig();
+    }
+    return Object.assign({}, DEFAULT_CONFIG);
+  };
+
+  /* ================================================================ */
+  /**
+   * Enable or disable console output
+   * @param {boolean} enabled - Whether to enable console output
+   */
+  var enableConsole = function (enabled) {
+    if (typeof namespace.logger !== 'undefined' && namespace.logger.configure) {
+      namespace.logger.configure({ enableConsole: enabled });
+      console.log('Logger console output ' + (enabled ? 'enabled' : 'disabled'));
+    }
+  };
+
+  /* ================================================================ */
+  /**
+   * Check if console output is enabled
+   * @returns {boolean} - Current console output status
+   */
+  var isConsoleEnabled = function () {
+    if (typeof namespace.logger !== 'undefined' && namespace.logger.getConfig) {
+      return namespace.logger.getConfig().enableConsole;
+    }
+    return DEFAULT_CONFIG.enableConsole;
+  };
+
+  /* ================================================================ */
   /* Return public API */
   /* ================================================================ */
   return {
@@ -198,7 +273,18 @@ namespace.loggerConfig = (function (namespace, undefined) {
     getEnhancedConfig: getEnhancedConfig,
 
     // Validation functions
-    validateConfig: validateConfig
+    validateConfig: validateConfig,
+
+    // Logger control functions (moved from logger.js)
+    setLevel: setLevel,
+    getLevel: getLevel,
+    configure: configure,
+    getConfig: getConfig,
+    enableConsole: enableConsole,
+    isConsoleEnabled: isConsoleEnabled,
+
+    // Constants
+    LOG_LEVELS: LOG_LEVELS
   };
 
 })(namespace);
