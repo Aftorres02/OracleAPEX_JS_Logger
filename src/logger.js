@@ -13,14 +13,12 @@ var namespace = namespace || {};
 namespace.logger = (function (namespace) {
   'use strict';
 
-  // Configuration - Initialize from logger-config
-  var config = namespace.loggerConfig.getEnhancedConfig();
+  // Configuration - Use live config from logger-config (single source of truth)
+  var config = namespace.loggerConfig.getCurrentConfig();
 
-  /* ================================================================ */
   // Private variables
   var timingUnits = {};
 
-  /* ================================================================ */
   // Log levels - Use from logger-config
   var LOG_LEVELS = namespace.loggerConfig.LOG_LEVELS;
 
@@ -55,6 +53,15 @@ namespace.logger = (function (namespace) {
     return levelNum <= configNum;
   };
 
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Send log entry to server via AJAX with enhanced error handling
    * @author Angel O. Flores Torres
@@ -112,6 +119,15 @@ namespace.logger = (function (namespace) {
     attemptSend();
   };
 
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Output log entry to console with colors and appropriate console method
    * @author Angel O. Flores Torres
@@ -124,8 +140,6 @@ namespace.logger = (function (namespace) {
     var level = logEntry.level.toUpperCase();
     var module = logEntry.module ? `[${logEntry.module}]` : '';
     var extra = logEntry.extra ? ` ${JSON.stringify(logEntry.extra)}` : '';
-
-    var message = `[${timestamp}] ${module} ${logEntry.text}${extra}`;
 
     // Get styles from config (single source of truth)
     var consoleConfig = namespace.loggerConfig.getConsoleConfig();
@@ -157,6 +171,15 @@ namespace.logger = (function (namespace) {
     }
   };
 
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Format log entry for console output (fallback for server errors)
    * @author Angel O. Flores Torres
@@ -175,6 +198,15 @@ namespace.logger = (function (namespace) {
     return `[${timestamp}] ${level} ${module} ${logEntry.text}${extra}`;
   };
 
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Sanitize data to prevent issues with circular references and size limits
    * @author Angel O. Flores Torres
@@ -214,6 +246,15 @@ namespace.logger = (function (namespace) {
     }
   };
 
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Mask sensitive fields in data
    * @author Angel O. Flores Torres
@@ -249,6 +290,15 @@ namespace.logger = (function (namespace) {
     return masked;
   };
 
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Create log entry object with enhanced features
    * @author Angel O. Flores Torres
@@ -280,13 +330,6 @@ namespace.logger = (function (namespace) {
   /*                                            PUBLIC FUNCTIONS                                       */
   /* ================================================================================================= */
 
-
-
-
-
-
-
-  /* ================================================================ */
   /**
    * Console-only logging function (no database storage) - Always INFORMATION level
    * @author Angel O. Flores Torres
@@ -319,7 +362,11 @@ namespace.logger = (function (namespace) {
 
 
 
-  /* ================================================================ */
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Server logging function (includes database storage) - Always INFORMATION level
    * @author Angel O. Flores Torres
@@ -355,7 +402,11 @@ namespace.logger = (function (namespace) {
 
 
 
-  /* ================================================================ */
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Console-only error logging
    * @author Angel O. Flores Torres
@@ -388,7 +439,11 @@ namespace.logger = (function (namespace) {
 
 
 
-  /* ================================================================ */
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Console-only warning logging
    * @author Angel O. Flores Torres
@@ -421,7 +476,11 @@ namespace.logger = (function (namespace) {
 
 
 
-  /* ================================================================ */
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Start timing for a unit
    * @author Angel O. Flores Torres
@@ -437,7 +496,11 @@ namespace.logger = (function (namespace) {
 
 
 
-  /* ================================================================ */
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Stop timing for a unit and log the result (console-only)
    * @param {string} unit - The timing unit name
@@ -466,7 +529,8 @@ namespace.logger = (function (namespace) {
 
 
 
-  /* ================================================================ */
+
+  /* ================================================================================================= */
   /**
    * Stop timing for a unit and log to server (includes database storage)
    * @param {string} unit - The timing unit name
@@ -498,27 +562,15 @@ namespace.logger = (function (namespace) {
 
 
 
-  /**
-   * Configure logger options (internal use)
-   * @param {Object} options - Configuration options
-   */
-  var configure = function (options) {
-    Object.assign(config, options);
-  };
-
-  /**
-   * Get current configuration (internal use)
-   * @returns {Object} - Current configuration
-   */
-  var getConfig = function () {
-    return Object.assign({}, config);
-  };
 
 
 
 
 
-  /* ================================================================ */
+
+
+
+  /* ================================================================================================= */
   /**
    * Create a module logger with pre-configured scope and persistent extra data
    * @author Angel O. Flores Torres
@@ -572,9 +624,9 @@ namespace.logger = (function (namespace) {
 
 
 
-  /* ================================================================ */
+  /* ================================================================================================= */
   /* Return public API */
-  /* ================================================================ */
+  /* ================================================================================================= */
   return {
     // Console-only logging functions
     log: log, //  namespace.logger.log("API response received", "ajax", { status: 200, data: "success" });
@@ -589,9 +641,7 @@ namespace.logger = (function (namespace) {
     timeStop: timeStop, // namespace.logger.timeStop("page-load", "performance");
     timeStopServer: timeStopServer, // namespace.logger.timeStopServer("database-query", "production-performance");
 
-    // Internal configuration functions (use loggerConfig for public access)
-    configure: configure,
-    getConfig: getConfig,
+
 
     // Module logger factory
     createModuleLogger: createModuleLogger // var logger = namespace.logger.createModuleLogger('PaymentModule');

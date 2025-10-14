@@ -13,7 +13,7 @@ var namespace = namespace || {};
 namespace.loggerUtils = (function (namespace, undefined) {
   'use strict';
 
-  /* ================================================================ */
+  /* ================================================================================================= */
   /**
    * Get APEX context information
    * @author Angel O. Flores Torres
@@ -44,7 +44,15 @@ namespace.loggerUtils = (function (namespace, undefined) {
     return context;
   };
 
-  /* ================================================================ */
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Get browser information
    * @author Angel O. Flores Torres
@@ -61,7 +69,15 @@ namespace.loggerUtils = (function (namespace, undefined) {
     };
   };
 
-  /* ================================================================ */
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Get APEX context
    * @author Angel O. Flores Torres
@@ -75,7 +91,15 @@ namespace.loggerUtils = (function (namespace, undefined) {
     return _getApexContext(keys);
   };
 
-  /* ================================================================ */
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Get browser information
    * @returns {Object} - Browser info
@@ -84,9 +108,17 @@ namespace.loggerUtils = (function (namespace, undefined) {
     return _getBrowserInfo();
   };
 
-  /* ================================================================ */
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /* Return public API */
-  /* ================================================================ */
+  /* ================================================================================================= */
   return {
     // APEX functions
     getApexContext: getApexContext,

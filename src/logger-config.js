@@ -13,7 +13,7 @@ var namespace = namespace || {};
 namespace.loggerConfig = (function (namespace, undefined) {
   'use strict';
 
-  /* ================================================================ */
+  /* ================================================================================================= */
   // Default configuration values
   var DEFAULT_CONFIG = {
     level: 'INFORMATION',
@@ -28,7 +28,18 @@ namespace.loggerConfig = (function (namespace, undefined) {
     maxTimingUnits: 100
   };
 
-  /* ================================================================ */
+  // Current active configuration (this is the single source of truth)
+  var currentConfig = Object.assign({}, DEFAULT_CONFIG);
+
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   // Log level constants (matching Oracle Logger)
   var LOG_LEVELS = {
     OFF: 0,
@@ -44,7 +55,13 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
 
-  /* ================================================================ */
+
+
+
+
+
+
+  /* ================================================================================================= */
   // Environment-specific configurations
   var ENV_CONFIGS = {
     development: {
@@ -75,7 +92,11 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
 
-  /* ================================================================ */
+
+
+
+
+  /* ================================================================================================= */
   // Console formatting options
   var CONSOLE_CONFIG = {
     showTimestamp: true,
@@ -92,7 +113,15 @@ namespace.loggerConfig = (function (namespace, undefined) {
     }
   };
 
-  /* ================================================================ */
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Get environment-specific configuration
    * @param {string} environment - The environment name
@@ -106,7 +135,11 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
 
-  /* ================================================================ */
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Get console configuration
    * @returns {Object} - Console config
@@ -119,7 +152,11 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
 
-  /* ================================================================ */
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Validate log level
    * @param {string} level - The level to validate
@@ -133,7 +170,11 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
 
-  /* ================================================================ */
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Validate configuration options
    * @param {Object} config - Configuration to validate
@@ -175,102 +216,151 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
 
-  /* ================================================================ */
+
+
+
+
+  /* ================================================================================================= */
+  /**
+   * Get current active configuration (used by logger.js)
+   * @returns {Object} - Current active configuration
+   */
+  var getCurrentConfig = function () {
+    return currentConfig; // Return reference, not copy, so logger.js uses live config
+  };
+
   /**
    * Get enhanced default configuration with new options
    * @returns {Object} - Enhanced default configuration
    */
   var getEnhancedConfig = function () {
-    return Object.assign({}, DEFAULT_CONFIG);
+    return Object.assign({}, currentConfig); // Return current config, not default
   };
 
 
 
 
 
-  /* ================================================================ */
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Set log level
    * @param {string} level - The log level to set
    */
   var setLevel = function (level) {
     if (LOG_LEVELS[level.toUpperCase()] !== undefined) {
-      // Update the logger's config if it exists
-      if (typeof namespace.logger !== 'undefined' && namespace.logger.configure) {
-        namespace.logger.configure({ level: level.toUpperCase() });
-      }
+      currentConfig.level = level.toUpperCase();
     } else {
       console.warn('Invalid log level: ' + level);
     }
   };
 
-  /* ================================================================ */
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
-   * Get current log level from logger
+   * Get current log level
    * @returns {string} - Current log level
    */
   var getLevel = function () {
-    if (typeof namespace.logger !== 'undefined' && namespace.logger.getConfig) {
-      return namespace.logger.getConfig().level;
-    }
-    return DEFAULT_CONFIG.level;
+    return currentConfig.level;
   };
 
-  /* ================================================================ */
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Configure logger options
    * @param {Object} options - Configuration options
    */
   var configure = function (options) {
-    if (typeof namespace.logger !== 'undefined' && namespace.logger.configure) {
-      namespace.logger.configure(options);
-    }
+    Object.assign(currentConfig, options);
   };
 
-  /* ================================================================ */
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
-   * Get current configuration from logger
+   * Get current configuration
    * @returns {Object} - Current configuration
    */
   var getConfig = function () {
-    if (typeof namespace.logger !== 'undefined' && namespace.logger.getConfig) {
-      return namespace.logger.getConfig();
-    }
-    return Object.assign({}, DEFAULT_CONFIG);
+    return Object.assign({}, currentConfig);
   };
 
-  /* ================================================================ */
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Enable or disable console output
    * @param {boolean} enabled - Whether to enable console output
    */
   var enableConsole = function (enabled) {
-    if (typeof namespace.logger !== 'undefined' && namespace.logger.configure) {
-      namespace.logger.configure({ enableConsole: enabled });
-      console.log('Logger console output ' + (enabled ? 'enabled' : 'disabled'));
-    }
+    currentConfig.enableConsole = enabled;
+    console.log('Logger console output ' + (enabled ? 'enabled' : 'disabled'));
   };
 
-  /* ================================================================ */
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /**
    * Check if console output is enabled
    * @returns {boolean} - Current console output status
    */
   var isConsoleEnabled = function () {
-    if (typeof namespace.logger !== 'undefined' && namespace.logger.getConfig) {
-      return namespace.logger.getConfig().enableConsole;
-    }
-    return DEFAULT_CONFIG.enableConsole;
+    return currentConfig.enableConsole;
   };
 
-  /* ================================================================ */
+
+
+
+
+
+
+
+
+  /* ================================================================================================= */
   /* Return public API */
-  /* ================================================================ */
+  /* ================================================================================================= */
   return {
     // Configuration functions
     getEnvConfig: getEnvConfig,
     getConsoleConfig: getConsoleConfig,
     getEnhancedConfig: getEnhancedConfig,
+    getCurrentConfig: getCurrentConfig,
 
     // Validation functions
     validateConfig: validateConfig,
