@@ -5,6 +5,35 @@ A JavaScript logging library that mimics Oracle Logger functionality, designed s
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-blue.svg)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 
+## 📖 Purpose
+
+If you're building Oracle APEX applications, you need visibility into what's happening in the browser — especially in production where users can't open DevTools. This library gives you:
+
+**The Problem:**
+- JavaScript errors happen silently in production
+- `console.log()` only works when DevTools is open
+- No way to track client-side performance issues
+- Can't audit user actions or debug reported issues
+- Sensitive data (passwords, tokens) gets logged accidentally
+
+**The Solution:**
+This logger provides a structured, configurable logging system that:
+- ✅ **Stores logs in your database** via APEX processes for production monitoring
+- ✅ **Colored console output** for development (blue, orange, red by level)
+- ✅ **Automatically masks sensitive data** (passwords, tokens, SSN)
+- ✅ **Performance timing** to find bottlenecks
+- ✅ **Module-scoped loggers** for clean, contextual logging
+- ✅ **Environment-aware** — verbose in dev, quiet in production
+- ✅ **Graceful fallbacks** — if server fails, logs to console
+
+**Use Cases:**
+- 📊 Track user actions for audit trails
+- 🐛 Debug production issues without user screenshots
+- ⚡ Measure page load and API performance
+- 🔒 Monitor failed authentication attempts
+- 💰 Log business events (payments, orders)
+- 🚨 Get alerts on client-side errors
+
 ## 🚀 Quick Start
 
 ### Installation
