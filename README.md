@@ -38,10 +38,10 @@ var logger = namespace.logger.createModuleLogger('AuthModule');
 logger.setExtra({ feature: 'session' });
 logger.log('Processing request', { step: 'start' });
 
-// Enhanced timing
+// Performance timing
 namespace.logger.timeStart('page_load');
 // ... do work ...
-namespace.logger.timeStop('page_load', 'performance'); // Green TIMING message
+namespace.logger.timeStop('page_load', 'performance'); // Logs elapsed time (blue INFO)
 ```
 
 ## 📚 Documentation
@@ -54,7 +54,7 @@ namespace.logger.timeStop('page_load', 'performance'); // Green TIMING message
 
 - **Oracle Logger Compatible** - Mimics Oracle Logger API and behavior
 - **APEX Integration** - Built specifically for Oracle APEX applications
-- **Multiple Log Levels** - ERROR, WARNING, INFORMATION, TIMING, PERMANENT
+- **Three Log Levels** - ERROR, WARNING, INFORMATION with level filtering
 - **Colored Console Output** - Different colors for each log level in browser console
 - **Enhanced Error Handling** - Graceful fallback when server is unavailable
 - **Data Sanitization** - Automatic masking of sensitive fields (passwords, tokens)
@@ -70,8 +70,6 @@ The logger automatically uses different colors and console methods for each log 
 - **ERROR** - Red text, uses `console.error()`
 - **WARNING** - Orange text, uses `console.warn()`  
 - **INFORMATION** - Blue text, uses `console.log()`
-- **TIMING** - Green text, uses `console.log()`
-- **PERMANENT** - Purple text with yellow background, uses `console.log()`
 
 ## 📁 Project Structure
 
@@ -181,17 +179,52 @@ The logger automatically sends logs using `apex.server.process`:
 
 ## 📊 Log Levels
 
-| Level | Value | Description |
-|-------|-------|-------------|
-| OFF | 0 | No logging |
-| PERMANENT | 1 | Permanent logs |
-| ERROR | 2 | Error messages |
-| WARNING | 4 | Warning messages |
-| INFORMATION | 8 | Information messages |
-| DEBUG | 16 | Debug messages |
-| TIMING | 32 | Performance timing |
-| SYS_CONTEXT | 64 | System context |
-| APEX | 128 | APEX-specific |
+### Currently Implemented
+
+These levels have dedicated API methods:
+
+| Level | API Method | Description |
+|-------|------------|-------------|
+| ERROR | `logger.error()` | Error messages - red console output |
+| WARNING | `logger.warning()` | Warning messages - orange console output |
+| INFORMATION | `logger.log()`, `logger.logServer()` | Information messages - blue console output |
+
+### Level Filtering
+
+Use `namespace.loggerConfig.configure({ level: '...' })` to control which logs appear:
+
+```javascript
+// Show only errors
+namespace.loggerConfig.configure({ level: 'ERROR' });
+namespace.logger.log('This will NOT show');      // Suppressed
+namespace.logger.warning('This will NOT show');  // Suppressed
+namespace.logger.error('This WILL show');        // Shown
+
+// Show errors and warnings
+namespace.loggerConfig.configure({ level: 'WARNING' });
+namespace.logger.log('This will NOT show');      // Suppressed
+namespace.logger.warning('This WILL show');      // Shown
+namespace.logger.error('This WILL show');        // Shown
+
+// Show everything (default)
+namespace.loggerConfig.configure({ level: 'INFORMATION' });
+namespace.logger.log('This WILL show');          // Shown
+namespace.logger.warning('This WILL show');      // Shown
+namespace.logger.error('This WILL show');        // Shown
+```
+
+### Reserved Levels (Future Implementation)
+
+These levels are defined but not yet exposed via public API:
+
+| Level | Value | Purpose |
+|-------|-------|---------|
+| OFF | 0 | Disable all logging |
+| PERMANENT | 1 | Critical logs that always appear |
+| DEBUG | 16 | Detailed debug information |
+| TIMING | 32 | Performance measurements |
+| SYS_CONTEXT | 64 | System context information |
+| APEX | 128 | APEX-specific logs |
 
 ## 🤝 Contributing
 

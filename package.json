@@ -1,12 +1,12 @@
 {
   "name": "oracle-apex-js-logger",
   "version": "1.0.0",
-  "description": "A JavaScript logging library that mimics Oracle Logger functionality, designed for Oracle APEX integration",
+  "description": "A lightweight JavaScript logging library for Oracle APEX with colored console output, server logging, and performance timing",
   "main": "src/logger.js",
   "files": [
     "src/",
     "examples/",
-    "docs/",
+    "demo/",
     "README.md",
     "LICENSE"
   ],

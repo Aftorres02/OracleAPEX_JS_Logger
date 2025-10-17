@@ -23,8 +23,9 @@ function simpleTimingExample() {
   
   // Simulate work
   setTimeout(function() {
-    var elapsed = namespace.logger.timeStop('page_load', 'Performance');
-    console.log('Elapsed time:', elapsed, 'ms');
+    // timeStop automatically logs the elapsed time
+    namespace.logger.timeStop('page_load', 'Performance');
+    // Output: [timestamp] INFO [Performance] page_load completed in 1000.00ms
   }, 1000);
 }
 
@@ -66,7 +67,30 @@ function serverTimingExample() {
 }
 
 /* ================================================================ */
-// Example 4: Module logger with timing
+// Example 4: Using elapsed time for conditional logic
+/* ================================================================ */
+function conditionalTimingExample() {
+  namespace.logger.timeStart('api_request');
+  
+  // Simulate API call
+  setTimeout(function() {
+    // Capture elapsed time for conditional logic
+    var elapsed = namespace.logger.timeStop('api_request', 'API');
+    
+    // Use the elapsed value for decisions
+    if (elapsed > 2000) {
+      namespace.logger.warning('API request too slow', 'Performance', {
+        threshold: 2000,
+        actual: elapsed
+      });
+    } else {
+      namespace.logger.log('API request within acceptable time', 'Performance');
+    }
+  }, 2500);
+}
+
+/* ================================================================ */
+// Example 5: Module logger with timing
 /* ================================================================ */
 namespace.performanceModule = (function (namespace) {
   'use strict';
@@ -78,6 +102,7 @@ namespace.performanceModule = (function (namespace) {
     
     // Simulate AJAX call
     setTimeout(function() {
+      // timeStop automatically logs
       logger.timeStop('data_load');
       logger.log('Data loaded successfully');
     }, 1500);
@@ -88,6 +113,7 @@ namespace.performanceModule = (function (namespace) {
     
     // Simulate image processing
     setTimeout(function() {
+      // Use elapsed for conditional warning
       var elapsed = logger.timeStop('image_process');
       
       if (elapsed > 1000) {
@@ -103,7 +129,7 @@ namespace.performanceModule = (function (namespace) {
 })(namespace);
 
 /* ================================================================ */
-// Example 5: Nested timing operations
+// Example 6: Nested timing operations
 /* ================================================================ */
 function nestedTimingExample() {
   var logger = namespace.logger.createModuleLogger('CheckoutModule');
@@ -138,6 +164,7 @@ function nestedTimingExample() {
 simpleTimingExample();
 // multipleTimersExample();
 // serverTimingExample();
+// conditionalTimingExample();
 // namespace.performanceModule.measureDataLoad();
 // namespace.performanceModule.measureImageProcess();
 // nestedTimingExample();
