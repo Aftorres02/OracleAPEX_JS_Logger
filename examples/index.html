@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oracle APEX JS Logger - Examples</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { color: #333; }
+        .example-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .example-card h2 {
+            margin-top: 0;
+            color: #2196F3;
+        }
+        .example-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        button.secondary {
+            background: #666;
+        }
+        button.secondary:hover {
+            background: #555;
+        }
+        #console-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid #333;
+        }
+        .clear-btn {
+            background: #f44336;
+        }
+        .clear-btn:hover {
+            background: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Oracle APEX JS Logger - Examples</h1>
+    <p>Open the browser console to see colored log output. Click buttons to run examples.</p>
+
+    <!-- Mock APEX environment -->
+    <script>
+        window.apex = window.apex || {
+            env: {
+                APP_USER: 'DEMO_USER',
+                APP_PAGE_ID: 1,
+                APP_SESSION: 12345,
+                APP_ID: 100
+            },
+            server: {
+                process: function(processName, data, options) {
+                    console.log('%c[APEX Mock]%c Server process called:', 'color: purple; font-weight: bold', 'color: inherit', processName, data);
+                    setTimeout(function() {
+                        if (options && options.success) {
+                            options.success({ status: 'success' });
+                        }
+                    }, 100);
+                }
+            }
+        };
+    </script>
+
+    <!-- Load logger -->
+    <script src="../src/logger-config.js"></script>
+    <script src="../src/logger-utils.js"></script>
+    <script src="../src/logger.js"></script>
+
+    <div class="example-card">
+        <h2>01 - Basic Logging</h2>
+        <p>Simple log, warning, and error calls with colored console output.</p>
+        <button onclick="loadAndRun('01-basic-logging.js')">Run Example</button>
+        <a href="01-basic-logging.js" target="_blank"><button class="secondary">View Code</button></a>
+    </div>
+
+    <div class="example-card">
+        <h2>02 - Module Logger Pattern</h2>
+        <p>Create scoped loggers for different modules with persistent context.</p>
+        <button onclick="loadAndRun('02-module-logger.js')">Run Example</button>
+        <a href="02-module-logger.js" target="_blank"><button class="secondary">View Code</button></a>
+    </div>
+
+    <div class="example-card">
+        <h2>03 - Configuration</h2>
+        <p>Different configuration scenarios for dev, test, and production.</p>
+        <button onclick="loadAndRun('03-configuration.js')">Run Example</button>
+        <a href="03-configuration.js" target="_blank"><button class="secondary">View Code</button></a>
+    </div>
+
+    <div class="example-card">
+        <h2>04 - Performance Timing</h2>
+        <p>Measure and log execution times for performance monitoring.</p>
+        <button onclick="loadAndRun('04-timing.js')">Run Example</button>
+        <a href="04-timing.js" target="_blank"><button class="secondary">View Code</button></a>
+    </div>
+
+    <div class="example-card">
+        <h2>05 - Server Logging</h2>
+        <p>Send logs to APEX server for database storage and monitoring.</p>
+        <button onclick="loadAndRun('05-server-logging.js')">Run Example</button>
+        <a href="05-server-logging.js" target="_blank"><button class="secondary">View Code</button></a>
+    </div>
+
+    <div style="margin-top: 30px;">
+        <button class="clear-btn" onclick="console.clear()">Clear Console</button>
+    </div>
+
+    <script>
+        function loadAndRun(filename) {
+            var script = document.createElement('script');
+            script.src = filename;
+            script.onload = function() {
+                console.log('%c✓ Example loaded: ' + filename, 'color: green; font-weight: bold');
+            };
+            script.onerror = function() {
+                console.error('Failed to load: ' + filename);
+            };
+            document.body.appendChild(script);
+        }
+
+        console.log('%c🚀 Oracle APEX JS Logger Examples', 'color: #2196F3; font-size: 20px; font-weight: bold');
+        console.log('%cClick buttons above to run examples. Check this console for output.', 'color: #666');
+    </script>
+</body>
+</html>

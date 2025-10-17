@@ -6,7 +6,7 @@ var namespace = namespace || {};
  * @module logger-config
  * ==========================================================================
  * @author Angel O. Flores Torres
- * @created 2024
+ * @created 2025
  * @version 1.0
  */
 // Create object for logger configuration

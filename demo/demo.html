@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Module Demo - Oracle APEX JS Logger</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f5f5f5;
+        }
+        h1 { color: #333; }
+        .demo-card {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin: 15px 0 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover { background: #1976D2; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .result.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
+        }
+        .result.error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #f44336;
+        }
+        .console-note {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            border-left: 4px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <h1>💳 Payment Module Demo</h1>
+    <p>Demonstrates the payment module with integrated Oracle APEX JS Logger.</p>
+
+    <!-- Mock APEX environment -->
+    <script>
+        window.apex = {
+            env: {
+                APP_USER: 'DEMO_USER',
+                APP_PAGE_ID: 10,
+                APP_SESSION: 98765,
+                APP_ID: 100
+            },
+            server: {
+                process: function(processName, data, options) {
+                    console.log('%c[APEX Server]%c Process called:', 'color: purple; font-weight: bold', 'color: inherit', processName);
+                    console.log('Data:', data);
+                    setTimeout(function() {
+                        if (options && options.success) {
+                            options.success({ status: 'success' });
+                        }
+                    }, 100);
+                }
+            }
+        };
+    </script>
+
+    <!-- Load logger and payment module -->
+    <script src="../src/logger-config.js"></script>
+    <script src="../src/logger-utils.js"></script>
+    <script src="../src/logger.js"></script>
+    <script src="payment-module.js"></script>
+
+    <div class="demo-card">
+        <h2>Process Payment</h2>
+        <form id="paymentForm">
+            <label for="orderId">Order ID *</label>
+            <input type="text" id="orderId" value="ORD-12345" required>
+
+            <label for="amount">Amount *</label>
+            <input type="number" id="amount" value="99.99" step="0.01" min="0.01" required>
+
+            <label for="method">Payment Method *</label>
+            <select id="method" required>
+                <option value="credit_card">Credit Card</option>
+                <option value="paypal">PayPal</option>
+                <option value="bank_transfer">Bank Transfer</option>
+            </select>
+
+            <button type="submit">Process Payment</button>
+        </form>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <div class="demo-card">
+        <h2>Process Refund</h2>
+        <label for="transactionId">Transaction ID</label>
+        <input type="text" id="transactionId" value="TXN-67890">
+
+        <label for="refundAmount">Refund Amount</label>
+        <input type="number" id="refundAmount" value="49.99" step="0.01" min="0.01">
+
+        <button onclick="processRefund()">Process Refund</button>
+
+        <div id="refundResult" class="result"></div>
+    </div>
+
+    <div class="console-note">
+        <strong>💡 Open Browser Console</strong><br>
+        Check the console to see colored log output from the logger:
+        <ul>
+            <li>Blue = Information logs</li>
+            <li>Orange = Warnings</li>
+            <li>Red = Errors</li>
+            <li>Green = Timing logs</li>
+            <li>Purple = APEX server calls</li>
+        </ul>
+    </div>
+
+    <script>
+        // Configure logger for demo
+        namespace.loggerConfig.configure({
+            level: 'INFORMATION',
+            enableConsole: true,
+            enableServer: true
+        });
+
+        // Payment form handler
+        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            var resultDiv = document.getElementById('result');
+            var submitBtn = e.target.querySelector('button');
+
+            submitBtn.disabled = true;
+            resultDiv.style.display = 'none';
+
+            var paymentData = {
+                orderId: document.getElementById('orderId').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                method: document.getElementById('method').value
+            };
+
+            namespace.paymentModule.processPayment(paymentData)
+                .then(function(result) {
+                    resultDiv.className = 'result success';
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = '<strong>✓ Payment Successful!</strong><br>' +
+                        'Transaction ID: ' + result.transactionId + '<br>' +
+                        'Order ID: ' + result.orderId;
+                    submitBtn.disabled = false;
+                })
+                .catch(function(error) {
+                    resultDiv.className = 'result error';
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = '<strong>✗ Payment Failed</strong><br>' + error.message;
+                    submitBtn.disabled = false;
+                });
+        });
+
+        // Refund handler
+        function processRefund() {
+            var resultDiv = document.getElementById('refundResult');
+            var transactionId = document.getElementById('transactionId').value;
+            var amount = parseFloat(document.getElementById('refundAmount').value);
+
+            resultDiv.style.display = 'none';
+
+            namespace.paymentModule.refundPayment(transactionId, amount)
+                .then(function(result) {
+                    resultDiv.className = 'result success';
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = '<strong>✓ Refund Successful!</strong><br>' +
+                        'Refund ID: ' + result.refundId + '<br>' +
+                        'Original Transaction: ' + result.originalTransactionId;
+                })
+                .catch(function(error) {
+                    resultDiv.className = 'result error';
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = '<strong>✗ Refund Failed</strong><br>' + error.message;
+                });
+        }
+
+        console.log('%c💳 Payment Module Demo Ready', 'color: #2196F3; font-size: 18px; font-weight: bold');
+        console.log('%cAll logs will appear here with colored output', 'color: #666');
+    </script>
+</body>
+</html>

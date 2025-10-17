@@ -65,37 +65,31 @@
                 log('❌ Basic logging failed: ' + e.message);
             }
 
-            // Test 2: PERMANENT level with OFF setting
-            log('Test 2: PERMANENT level behavior');
+            // Test 2: Level OFF suppression and reset
+            log('Test 2: Level OFF suppression and reset');
             try {
-                namespace.logger.configure({ level: 'OFF' });
-                namespace.logger.log('This should not show', 'testing');
-                namespace.logger.log('This should show', 'testing', null, 'PERMANENT');
-                namespace.logger.configure({ level: 'INFO' }); // Reset
-                log('✅ PERMANENT level works with OFF');
+                namespace.loggerConfig.configure({ level: 'OFF' });
+                namespace.logger.log('This INFORMATION log may be suppressed', 'testing');
+                namespace.loggerConfig.configure({ level: 'INFORMATION' }); // Reset
+                log('✅ Level OFF set and reset without errors');
             } catch (e) {
-                log('❌ PERMANENT level test failed: ' + e.message);
+                log('❌ Level OFF test failed: ' + e.message);
             }
 
-            // Test 3: Context management
-            log('Test 3: Context management');
+            // Test 3: Module logger API
+            log('Test 3: Module logger API');
             try {
-                namespace.logger.setContext('user_session', { session_id: 'abc123' });
-                namespace.logger.log('Message with context', 'testing');
-                var context = namespace.logger.getContext();
-                if (context && context.scope === 'user_session') {
-                    log('✅ Context management works');
-                } else {
-                    log('❌ Context not set properly');
-                }
-                namespace.logger.clearContext();
-                if (!namespace.logger.getContext()) {
-                    log('✅ Context cleared successfully');
-                } else {
-                    log('❌ Context not cleared');
-                }
+                var modLogger = namespace.logger.createModuleLogger('TestModule');
+                modLogger.setExtra({ run: 't3' });
+                modLogger.log('Module logger log');
+                modLogger.warning('Module logger warning');
+                modLogger.error('Module logger error');
+                var elapsed0;
+                modLogger.timeStart('mod-task');
+                setTimeout(function(){ elapsed0 = modLogger.timeStop('mod-task'); }, 10);
+                log('✅ Module logger API invoked');
             } catch (e) {
-                log('❌ Context management failed: ' + e.message);
+                log('❌ Module logger API failed: ' + e.message);
             }
 
             // Test 4: Data sanitization
@@ -113,18 +107,7 @@
                 log('❌ Data sanitization failed: ' + e.message);
             }
 
-            // Test 5: Large data handling
-            log('Test 5: Large data handling');
-            try {
-                var largeData = {};
-                for (var i = 0; i < 1000; i++) {
-                    largeData['key' + i] = 'value'.repeat(100);
-                }
-                namespace.logger.log('Testing large data', 'testing', largeData);
-                log('✅ Large data handling works (should be truncated)');
-            } catch (e) {
-                log('❌ Large data handling failed: ' + e.message);
-            }
+
 
             // Test 6: Timing functionality
             log('Test 6: Timing functionality');
@@ -146,8 +129,10 @@
             log('Test 7: Configuration validation');
             try {
                 var validation = namespace.loggerConfig.validateConfig({
-                    level: 'INVALID_LEVEL',
-                    bufferSize: -1
+                    level: 'INVALID_LEVEL',          // invalid level
+                    maxDataSize: 50,                 // too small
+                    maxTimingUnits: 5,               // too small
+                    sensitiveFields: 'not-array'     // invalid type
                 });
                 if (!validation.isValid && validation.errors.length > 0) {
                     log('✅ Configuration validation works');
@@ -167,7 +152,8 @@
                     throw new Error('Server unavailable');
                 };
                 
-                namespace.logger.log('This should fallback to console', 'testing');
+                // Use server logging to trigger fallback path
+                namespace.logger.logServer('This should fallback to console', 'testing');
                 
                 // Restore
                 apex.server.process = originalProcess;

@@ -22,7 +22,7 @@ Include the library files in your Oracle APEX application:
 
 ```javascript
 // Configure the logger (optional - works out of the box)
-namespace.logger.configure({
+namespace.loggerConfig.configure({
   level: 'INFORMATION',
   enableConsole: true,
   enableServer: true
@@ -33,10 +33,10 @@ namespace.logger.log('User logged in', 'authentication', { user_id: 123 });     
 namespace.logger.error('Database connection failed', 'database');                // Red ERROR  
 namespace.logger.warning('Slow query detected', 'performance', { duration: 5000 }); // Orange WARNING
 
-// New context management
-namespace.logger.setContext('user_session', { session_id: 'abc123' });
-namespace.logger.log('Processing request', 'api'); // Includes context
-namespace.logger.clearContext();
+// Module-specific logger
+var logger = namespace.logger.createModuleLogger('AuthModule');
+logger.setExtra({ feature: 'session' });
+logger.log('Processing request', { step: 'start' });
 
 // Enhanced timing
 namespace.logger.timeStart('page_load');
@@ -46,10 +46,9 @@ namespace.logger.timeStop('page_load', 'performance'); // Green TIMING message
 
 ## 📚 Documentation
 
-- **[API Reference](docs/api-reference.md)** - Complete API documentation
-- **[Configuration Guide](docs/configuration.md)** - Detailed configuration options
-- **[Examples](examples/)** - Usage examples and patterns
-- **[Integration Guide](docs/apex-integration.md)** - Oracle APEX integration
+- **[Examples](examples/)** - Small, focused examples (start here!)
+- **[Demo](demo/)** - Full reference implementation
+- **[Tests](test/)** - Manual test page & automated tests (planned)
 
 ## 🎯 Features
 
@@ -59,7 +58,7 @@ namespace.logger.timeStop('page_load', 'performance'); // Green TIMING message
 - **Colored Console Output** - Different colors for each log level in browser console
 - **Enhanced Error Handling** - Graceful fallback when server is unavailable
 - **Data Sanitization** - Automatic masking of sensitive fields (passwords, tokens)
-- **Simple Context Management** - Set context for groups of related log entries
+- **Module Loggers** - Create scoped loggers with persistent extra data
 - **Performance Timing** - Built-in timing functions for performance monitoring
 - **Memory Management** - Automatic cleanup to prevent memory leaks
 - **Environment Support** - Different configurations for dev/test/prod
@@ -82,12 +81,23 @@ oracle-apex-js-logger/
 │   ├── logger.js          # Main logger class
 │   ├── logger-config.js   # Configuration management
 │   └── logger-utils.js    # Utility functions
-├── examples/              # Usage examples
-│   └── logger-example.js  # Comprehensive examples
-├── docs/                  # Documentation
-│   ├── api-reference.md   # API documentation
-│   ├── configuration.md   # Configuration guide
-│   └── apex-integration.md # APEX integration guide
+├── examples/              # Small, focused examples
+│   ├── index.html         # Run all examples
+│   ├── 01-basic-logging.js
+│   ├── 02-module-logger.js
+│   ├── 03-configuration.js
+│   ├── 04-timing.js
+│   ├── 05-server-logging.js
+│   └── README.md
+├── demo/                  # Full reference implementation
+│   ├── payment-module.js  # Complete payment module
+│   ├── demo.html          # Interactive demo
+│   └── README.md
+├── test/                  # Tests (manual + automated)
+│   ├── logger-test.html   # Manual test page
+│   └── README.md
+├── CHANGELOG.md           # Changes over time
+├── CONTRIBUTING.md        # Contribution guidelines
 ├── README.md              # This file
 ├── package.json           # NPM package configuration
 └── LICENSE                # MIT License
@@ -100,23 +110,25 @@ oracle-apex-js-logger/
 ```javascript
 // Development
 var devConfig = namespace.loggerConfig.getEnvConfig('development');
-namespace.logger.configure(devConfig);
+namespace.loggerConfig.configure(devConfig);
 
 // Production
 var prodConfig = namespace.loggerConfig.getEnvConfig('production');
-namespace.logger.configure(prodConfig);
+namespace.loggerConfig.configure(prodConfig);
 ```
 
 ### Custom Configuration
 
 ```javascript
-namespace.logger.configure({
-  level: 'WARNING',
-  enableConsole: false,
-  enableServer: true,
-  enableBuffer: true,
-  bufferSize: 500,
-  flushInterval: 60000
+namespace.loggerConfig.configure({
+  level: 'WARNING',            // One of: OFF, PERMANENT, ERROR, WARNING, INFORMATION, DEBUG, TIMING, SYS_CONTEXT, APEX
+  enableConsole: false,        // Console output toggle
+  enableServer: true,          // Send logs to APEX process
+  retryCount: 1,               // Retry attempts when server errors
+  enableDataMasking: true,     // Mask sensitive fields in extra data
+  sensitiveFields: ['password','token','ssn'],
+  maxDataSize: 5000,           // Max serialized size for extra data
+  maxTimingUnits: 100          // Internal timing units limit
 });
 ```
 
@@ -132,20 +144,17 @@ namespace.logger.timeStart('data_loading');
 namespace.logger.timeStop('data_loading', 'performance');
 ```
 
-## 🎯 Context Management
+## 🧰 Utilities
 
 ```javascript
-// Push context
-namespace.loggerUtils.pushContext('ticket_creation', {
-  user_id: 123,
-  project_id: 456
-});
+// Get APEX context values
+var ctx = namespace.loggerUtils.getApexContext(['APP_USER','APP_PAGE_ID']);
 
-// All subsequent logs include context
-namespace.logger.info('Processing ticket');
+// Get browser info
+var browser = namespace.loggerUtils.getBrowserInfo();
 
-// Pop context
-namespace.loggerUtils.popContext();
+// Use with logs
+namespace.logger.log('Processing ticket', 'tickets', { ctx: ctx, browser: browser });
 ```
 
 ## 🌐 APEX Integration
@@ -155,7 +164,7 @@ namespace.loggerUtils.popContext();
 ```javascript
 // Function for Dynamic Actions
 window.logUserAction = function(action, details) {
-  namespace.logger.info(`User action: ${action}`, 'dynamic_action', {
+  namespace.logger.log(`User action: ${action}`, 'dynamic_action', {
     action: action,
     details: details,
     page: apex.env.APP_PAGE_ID
@@ -165,9 +174,10 @@ window.logUserAction = function(action, details) {
 
 ### Server-side Processing
 
-The logger automatically sends logs to your APEX process:
-- **Endpoint**: `apex.env.APP_IMAGES_URL + 'logger_process.sql'`
-- **Parameters**: x01-x08 (level, text, scope, extra, timestamp, user, page, session)
+The logger automatically sends logs using `apex.server.process`:
+
+- **Process name**: `LOG_ENTRY` (create this page/process in your APEX app)
+- **Parameters**: x01-x08 (level, text, module, extra, timestamp, user, page, session)
 
 ## 📊 Log Levels
 
@@ -200,9 +210,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - **Issues**: [GitHub Issues](https://github.com/your-username/oracle-apex-js-logger/issues)
-- **Documentation**: [docs/](docs/)
-- **Examples**: [examples/](examples/)
+- **Examples**: [examples/](examples/) - Start here for simple examples
+- **Demo**: [demo/](demo/) - Full reference implementation
+- **Tests**: [test/logger-test.html](test/logger-test.html) - Manual test page
 
 ---
-
 **Made with ❤️ for the Oracle APEX community**

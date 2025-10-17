@@ -6,7 +6,7 @@ var namespace = namespace || {};
  * @module logger-utils
  * ==========================================================================
  * @author Angel O. Flores Torres
- * @created 2024
+ * @created 2025
  * @version 1.0
  */
 // Create object for logger utility functions
@@ -17,7 +17,7 @@ namespace.loggerUtils = (function (namespace, undefined) {
   /**
    * Get APEX context information
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {Array} keys - Array of APEX context keys to retrieve
    *
@@ -56,7 +56,7 @@ namespace.loggerUtils = (function (namespace, undefined) {
   /**
    * Get browser information
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @returns {Object} - Browser information
    */
@@ -81,7 +81,7 @@ namespace.loggerUtils = (function (namespace, undefined) {
   /**
    * Get APEX context
    * @author Angel O. Flores Torres
-   * @created 2024
+   * @created 2025
    *
    * @param {Array} keys - APEX context keys
    *

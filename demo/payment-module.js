@@ -6,7 +6,7 @@ var namespace = namespace || {};
  * @module paymentModule
  * ==========================================================================
  * @author Angel O. Flores Torres
- * @created 2024
+ * @created 2025
  * @version 1.0
  * @description Payment processing module with integrated logging
  */
@@ -16,12 +16,12 @@ namespace.paymentModule = (function (namespace, $, undefined) {
   // ========================================================================
   // MODULE LOGGER SETUP
   // ========================================================================
-  
+
   // Create module-specific logger (PaymentModule becomes the scope automatically)
   var logger = namespace.logger.createModuleLogger('PaymentModule');
-  
+
   // Set persistent extra data for all payment logs
-  logger.setExtra({ 
+  logger.setExtra({
     module: 'payment-processing',
     version: '2.1.0'
   });
@@ -38,60 +38,66 @@ namespace.paymentModule = (function (namespace, $, undefined) {
    */
   var processPayment = function(paymentData) {
     // Console logging for development
-    logger.log("Payment processing started", { 
+    logger.log("Payment processing started", {
       orderId: paymentData.orderId,
-      amount: paymentData.amount 
+      amount: paymentData.amount
     });
-    
+
     return new Promise(function(resolve, reject) {
       try {
         // Start timing for performance monitoring
         logger.timeStart("payment-processing");
-        
+
         // Validate payment data
         var validation = validatePaymentData(paymentData);
         if (!validation.isValid) {
-          logger.error("Payment validation failed", { 
+          logger.error("Payment validation failed", {
             errors: validation.errors,
-            orderId: paymentData.orderId 
+            orderId: paymentData.orderId
           });
           reject(new Error("Invalid payment data"));
           return;
         }
-        
+
         // Simulate payment processing
         setTimeout(function() {
           // Stop timing and log to server (for performance monitoring)
           logger.timeStopServer("payment-processing");
-          
+
           // Log successful payment to server (for business monitoring)
-          logger.logServer("Payment processed successfully", { 
+          logger.logServer("Payment processed successfully", {
             orderId: paymentData.orderId,
             amount: paymentData.amount,
             method: paymentData.method,
             timestamp: new Date().toISOString()
           });
-          
+
           resolve({
             success: true,
             transactionId: "TXN_" + Date.now(),
             orderId: paymentData.orderId
           });
-          
+
         }, 2000);
-        
+
       } catch (error) {
         // Log error to server (for production monitoring)
-        logger.logServer("Payment processing failed", { 
+        logger.logServer("Payment processing failed", {
           orderId: paymentData.orderId,
           error: error.message,
           stack: error.stack
-        }, "ERROR");
-        
+        });
+
         reject(error);
       }
     });
   };
+
+
+
+
+
+
 
   /* ================================================================ */
   /**
@@ -101,37 +107,42 @@ namespace.paymentModule = (function (namespace, $, undefined) {
    */
   var validatePaymentData = function(paymentData) {
     logger.log("Starting payment validation");
-    
+
     var errors = [];
-    
+
     if (!paymentData.orderId) {
       logger.warning("Order ID is missing");
       errors.push("Order ID is required");
     }
-    
+
     if (!paymentData.amount || paymentData.amount <= 0) {
       logger.warning("Invalid amount", { amount: paymentData.amount });
       errors.push("Valid amount is required");
     }
-    
+
     if (!paymentData.method) {
       logger.warning("Payment method is missing");
       errors.push("Payment method is required");
     }
-    
+
     var result = {
       isValid: errors.length === 0,
       errors: errors
     };
-    
+
     if (result.isValid) {
       logger.log("Payment validation passed");
     } else {
       logger.error("Payment validation failed", { errors: errors });
     }
-    
+
     return result;
   };
+
+
+
+
+
 
   /* ================================================================ */
   /**
@@ -141,43 +152,43 @@ namespace.paymentModule = (function (namespace, $, undefined) {
    * @returns {Promise} - Refund result
    */
   var refundPayment = function(transactionId, amount) {
-    logger.log("Refund processing started", { 
+    logger.log("Refund processing started", {
       transactionId: transactionId,
-      amount: amount 
+      amount: amount
     });
-    
+
     return new Promise(function(resolve, reject) {
       try {
         // Start timing
         logger.timeStart("refund-processing");
-        
+
         // Simulate refund processing
         setTimeout(function() {
           // Stop timing and log to server
           logger.timeStopServer("refund-processing");
-          
+
           // Log refund to server (important business event)
-          logger.logServer("Refund processed successfully", { 
+          logger.logServer("Refund processed successfully", {
             originalTransactionId: transactionId,
             refundAmount: amount,
             refundId: "REF_" + Date.now(),
             timestamp: new Date().toISOString()
           });
-          
+
           resolve({
             success: true,
             refundId: "REF_" + Date.now(),
             originalTransactionId: transactionId
           });
-          
+
         }, 1500);
-        
+
       } catch (error) {
-        logger.logServer("Refund processing failed", { 
+        logger.logServer("Refund processing failed", {
           transactionId: transactionId,
           error: error.message
-        }, "ERROR");
-        
+        });
+
         reject(error);
       }
     });
@@ -202,7 +213,7 @@ namespace.paymentModule = (function (namespace, $, undefined) {
 /*
 
 // Enable console logging for development
-namespace.logger.enableConsole(true);
+namespace.loggerConfig.enableConsole(true);
 
 // Use the payment module
 var paymentData = {
