@@ -21,9 +21,9 @@ Copy the example code into your APEX page JavaScript or upload as static files:
 
 ```html
 <!-- In APEX Page Properties > JavaScript > File URLs -->
-#APP_FILES#logger_js/src/logger-config.js
-#APP_FILES#logger_js/src/logger-utils.js
-#APP_FILES#logger_js/src/logger.js
+#APP_FILES#js/logger-config.js
+#APP_FILES#js/logger-utils.js
+#APP_FILES#js/logger.js
 ```
 
 Then use the example patterns in your page JavaScript or dynamic actions.

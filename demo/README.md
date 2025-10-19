@@ -24,10 +24,10 @@ This folder contains complete, production-ready modules demonstrating best pract
 
 ```html
 <!-- Upload to Static Application Files -->
-#APP_FILES#logger_js/src/logger-config.js
-#APP_FILES#logger_js/src/logger-utils.js
-#APP_FILES#logger_js/src/logger.js
-#APP_FILES#logger_js/payment-module.js
+#APP_FILES#js/logger-config.js
+#APP_FILES#js/logger-utils.js
+#APP_FILES#js/logger.js
+#APP_FILES#js/payment-module.js
 ```
 
 ```javascript

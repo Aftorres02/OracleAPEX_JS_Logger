@@ -42,9 +42,9 @@ Include the library files in your Oracle APEX application:
 
 ```html
 <!-- In WorkspaceFiles/Application files > JavaScript > File URLs -->
-#APP_FILES#logger_js/src/logger-config.js
-#APP_FILES#logger_js/src/logger-utils.js
-#APP_FILES#logger_js/src/logger.js
+#APP_FILES#js/logger-config.js
+#APP_FILES#js/logger-utils.js
+#APP_FILES#js/logger.js
 ```
 
 ### Basic Usage
@@ -73,102 +73,131 @@ namespace.logger.timeStart('page_load');
 namespace.logger.timeStop('page_load', 'performance'); // Logs elapsed time (blue INFO)
 ```
 
-## 📚 Documentation
+## 📖 API Reference
 
-- **[Examples](examples/)** - Small, focused examples (start here!)
-- **[Demo](demo/)** - Full reference implementation
-- **[Tests](test/)** - Manual test page & automated tests (planned)
+### Core Logging Methods
 
-## 🎯 Features
+All logging methods share the same signature:
 
-- **Oracle Logger Compatible** - Mimics Oracle Logger API and behavior
-- **APEX Integration** - Built specifically for Oracle APEX applications
-- **Three Log Levels** - ERROR, WARNING, INFORMATION with level filtering
-- **Colored Console Output** - Different colors for each log level in browser console
-- **Enhanced Error Handling** - Graceful fallback when server is unavailable
-- **Data Sanitization** - Automatic masking of sensitive fields (passwords, tokens)
-- **Module Loggers** - Create scoped loggers with persistent extra data
-- **Performance Timing** - Built-in timing functions for performance monitoring
-- **Memory Management** - Automatic cleanup to prevent memory leaks
-- **Environment Support** - Different configurations for dev/test/prod
-
-## 🎨 Console Colors
-
-The logger automatically uses different colors and console methods for each log level:
-
-- **ERROR** - Red text, uses `console.error()`
-- **WARNING** - Orange text, uses `console.warn()`  
-- **INFORMATION** - Blue text, uses `console.log()`
-
-## 📁 Project Structure
-
+```javascript
+namespace.logger.log(text, module, extra)       // INFORMATION level - console only (blue)
+namespace.logger.error(text, module, extra)     // ERROR level - console only (red)
+namespace.logger.warning(text, module, extra)   // WARNING level - console only (orange)
+namespace.logger.logServer(text, module, extra) // INFORMATION level - console + database (blue)
 ```
-oracle-apex-js-logger/
-├── src/                    # Source files
-│   ├── logger.js          # Main logger class
-│   ├── logger-config.js   # Configuration management
-│   └── logger-utils.js    # Utility functions
-├── examples/              # Small, focused examples
-│   ├── index.html         # Run all examples
-│   ├── 01-basic-logging.js
-│   ├── 02-module-logger.js
-│   ├── 03-configuration.js
-│   ├── 04-timing.js
-│   ├── 05-server-logging.js
-│   └── README.md
-├── demo/                  # Full reference implementation
-│   ├── payment-module.js  # Complete payment module
-│   ├── demo.html          # Interactive demo
-│   └── README.md
-├── test/                  # Tests (manual + automated)
-│   ├── logger-test.html   # Manual test page
-│   └── README.md
-├── CHANGELOG.md           # Changes over time
-├── CONTRIBUTING.md        # Contribution guidelines
-├── README.md              # This file
-├── package.json           # NPM package configuration
-└── LICENSE                # MIT License
+
+**Parameters:**
+- **`text`** (string, required) - The log message
+- **`module`** (string, optional) - Module or component name for context
+- **`extra`** (Object, optional) - Additional data (automatically sanitized and masked)
+
+**Key Differences:**
+- `log()`, `error()`, `warning()` → Console only, no database persistence
+- `logServer()` → Console AND database via APEX process
+
+> 💡 **Tip:** Use console-only methods during development, and `logServer()` for production monitoring.
+
+---
+
+### Performance Timing Methods
+
+```javascript
+namespace.logger.timeStart(unit)              // Start timer
+namespace.logger.timeStop(unit, module)       // Stop timer - console only
+namespace.logger.timeStopServer(unit, module) // Stop timer - console + database
 ```
+
+**Parameters:**
+- **`unit`** (string, required) - Unique timer identifier (must match between start/stop)
+- **`module`** (string, optional) - Module name for context (*stop methods only*)
+
+**Returns:** `number` - Elapsed time in milliseconds (*stop methods only*)
+
+**Usage:** See Basic Usage section above for complete example.
+
+---
+
+### Module Logger
+
+```javascript
+var logger = namespace.logger.createModuleLogger(moduleName)
+```
+
+Creates a scoped logger with pre-configured module name and persistent extra data.
+
+**Parameters:**
+- **`moduleName`** (string, required) - Module name (automatically applied to all logs)
+
+**Returns:** Logger object with these methods:
+- `log(text, extra)`, `error(text, extra)`, `warning(text, extra)`, `logServer(text, extra)`
+- `setExtra(extraData)` - Set persistent extra data for all subsequent logs
+- `clearExtra()`, `getExtra()` - Manage persistent data
+- `timeStart(unit)`, `timeStop(unit)`, `timeStopServer(unit)` - Timing methods
+
+**Usage:** See Basic Usage section above for complete example.
+
+---
+
+### Automatic Data Enhancements
+
+The logger automatically adds these fields to every log entry:
+- **`timestamp`** - ISO 8601 timestamp
+- **`level`** - Log level (INFORMATION, WARNING, ERROR)
+- **`user`** - APEX user (`apex.env.APP_USER`)
+- **`page`** - APEX page ID (`apex.env.APP_PAGE_ID`)
+- **`session`** - APEX session ID (`apex.env.APP_SESSION`)
+
+### Automatic Data Protection
+
+The `extra` parameter is automatically:
+- ✅ **Sanitized** - Handles circular references safely
+- ✅ **Size-limited** - Truncated if exceeds `maxDataSize` (default: 5000 bytes)
+- ✅ **Masked** - Sensitive fields automatically hidden (password, token, ssn, etc.)
+
+**Example of automatic masking:**
+```javascript
+namespace.logger.log('Login attempt', 'auth', {
+  username: 'john.doe',
+  password: 'secret123'  // Automatically becomes '***MASKED***'
+});
+```
+
+---
 
 ## 🔧 Configuration
 
 ### Environment-based Configuration
 
 ```javascript
-// Development
+// Development - verbose logging with console output
 var devConfig = namespace.loggerConfig.getEnvConfig('development');
 namespace.loggerConfig.configure(devConfig);
 
-// Production
+// Production - errors only with server logging
 var prodConfig = namespace.loggerConfig.getEnvConfig('production');
 namespace.loggerConfig.configure(prodConfig);
 ```
 
-### Custom Configuration
+### Custom Configuration Options
 
 ```javascript
 namespace.loggerConfig.configure({
-  level: 'WARNING',            // One of: OFF, PERMANENT, ERROR, WARNING, INFORMATION, DEBUG, TIMING, SYS_CONTEXT, APEX
-  enableConsole: false,        // Console output toggle
-  enableServer: true,          // Send logs to APEX process
-  retryCount: 1,               // Retry attempts when server errors
-  enableDataMasking: true,     // Mask sensitive fields in extra data
-  sensitiveFields: ['password','token','ssn'],
-  maxDataSize: 5000,           // Max serialized size for extra data
-  maxTimingUnits: 100          // Internal timing units limit
+  // Log Level Control
+  level: 'WARNING',            // OFF | PERMANENT | ERROR | WARNING | INFORMATION | DEBUG | TIMING | SYS_CONTEXT | APEX
+  
+  // Output Channels
+  enableConsole: false,        // Enable/disable console output
+  enableServer: true,          // Enable/disable database logging via APEX
+  retryCount: 1,               // Server request retry attempts on failure
+  
+  // Data Protection
+  enableDataMasking: true,     // Auto-mask sensitive fields
+  sensitiveFields: ['password','token','ssn','credit_card','api_key'],
+  maxDataSize: 5000,           // Max bytes for extra data (prevents large payloads)
+  
+  // Performance
+  maxTimingUnits: 100          // Max concurrent timing operations
 });
-```
-
-## ⏱️ Performance Timing
-
-```javascript
-// Start timing
-namespace.logger.timeStart('data_loading');
-
-// ... perform operation ...
-
-// Stop timing and log result
-namespace.logger.timeStop('data_loading', 'performance');
 ```
 
 ## 🧰 Utilities
@@ -206,21 +235,9 @@ The logger automatically sends logs using `apex.server.process`:
 - **Process name**: `LOG_ENTRY` (create this page/process in your APEX app)
 - **Parameters**: x01-x08 (level, text, module, extra, timestamp, user, page, session)
 
-## 📊 Log Levels
+## 📊 Log Level Filtering
 
-### Currently Implemented
-
-These levels have dedicated API methods:
-
-| Level | API Method | Description |
-|-------|------------|-------------|
-| ERROR | `logger.error()` | Error messages - red console output |
-| WARNING | `logger.warning()` | Warning messages - orange console output |
-| INFORMATION | `logger.log()`, `logger.logServer()` | Information messages - blue console output |
-
-### Level Filtering
-
-Use `namespace.loggerConfig.configure({ level: '...' })` to control which logs appear:
+Control which logs appear by setting the log level in configuration:
 
 ```javascript
 // Show only errors
@@ -242,18 +259,43 @@ namespace.logger.warning('This WILL show');      // Shown
 namespace.logger.error('This WILL show');        // Shown
 ```
 
-### Reserved Levels (Future Implementation)
+### Available Log Levels
 
-These levels are defined but not yet exposed via public API:
+| Level | Value | Status | Purpose |
+|-------|-------|--------|----------|
+| ERROR | 4 | ✅ Implemented | Error messages via `logger.error()` |
+| WARNING | 8 | ✅ Implemented | Warning messages via `logger.warning()` |
+| INFORMATION | 12 | ✅ Implemented | Info messages via `logger.log()`, `logger.logServer()` |
+| OFF | 0 | ⚙️ Configuration only | Disable all logging |
+| PERMANENT | 1 | 🔮 Future | Critical logs that bypass level filtering |
+| DEBUG | 16 | 🔮 Future | Detailed debug information |
+| TIMING | 32 | 🔮 Future | Dedicated performance measurements |
+| SYS_CONTEXT | 64 | 🔮 Future | System context information |
+| APEX | 128 | 🔮 Future | APEX-specific diagnostic logs |
 
-| Level | Value | Purpose |
-|-------|-------|---------|
-| OFF | 0 | Disable all logging |
-| PERMANENT | 1 | Critical logs that always appear |
-| DEBUG | 16 | Detailed debug information |
-| TIMING | 32 | Performance measurements |
-| SYS_CONTEXT | 64 | System context information |
-| APEX | 128 | APEX-specific logs |
+---
+
+## 📚 Additional Resources
+
+### Examples & Documentation
+- **[Examples](examples/)** - Small, focused code examples (recommended starting point)
+- **[Demo](demo/)** - Full-featured reference implementation
+- **[Tests](test/)** - Manual test page & unit tests (planned)
+
+### Project Structure
+```
+oracle-apex-js-logger/
+├── src/                    # Source files
+│   ├── logger.js          # Main logger implementation
+│   ├── logger-config.js   # Configuration management
+│   └── logger-utils.js    # Utility functions
+├── examples/              # Focused examples
+├── demo/                  # Complete demo app
+├── test/                  # Test suite
+└── README.md              # This file
+```
+
+---
 
 ## 🤝 Contributing
 
@@ -265,16 +307,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Inspired by Oracle Logger PL/SQL package
-- Designed for Oracle APEX community
-- Built with modern JavaScript standards
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/your-username/oracle-apex-js-logger/issues)
-- **Examples**: [examples/](examples/) - Start here for simple examples
-- **Demo**: [demo/](demo/) - Full reference implementation
-- **Tests**: [test/logger-test.html](test/logger-test.html) - Manual test page
+Inspired by Oracle Logger PL/SQL package and built with ❤️ for the Oracle APEX community.
 
 ---
-**Made with ❤️ for the Oracle APEX community**
+
+**Found an issue?** [Report it on GitHub Issues](https://github.com/your-username/oracle-apex-js-logger/issues)
