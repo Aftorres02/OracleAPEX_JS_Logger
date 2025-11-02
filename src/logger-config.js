@@ -15,17 +15,30 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
   /* ================================================================================================= */
   // Default configuration values
+  // All configuration should be set here - logger.js reads from this config
   var DEFAULT_CONFIG = {
-    level: 'INFORMATION',
-    enableConsole: true,
-    enableServer: true,
-    retryCount: 1,
-    // Security options
-    enableDataMasking: true,
-    sensitiveFields: ['password', 'token', 'ssn'],
-    maxDataSize: 10000,
-    // Cleanup option
-    maxTimingUnits: 100
+    // Logging behavior
+    level:                  'INFORMATION',        // Console log level - values: OFF (disables console only), ERROR, WARNING, INFORMATION (logServer() bypasses this)
+    enableServer:           true,                 // Enable server logging (database storage) - works independently of level setting
+
+    // Server logging configuration
+    serverProcessName:     'JS_LOGGER',          // APEX process name for server logging
+    retryCount:             1,                    // Maximum number of retry attempts for server logging
+    retryAttemptInitial:    0,                    // Initial retry attempt counter (usually 0)
+    retryDelayBase:         1000,                 // Base delay in milliseconds for exponential backoff retry
+
+    // Default values
+    defaultModuleName:      'JS_LOGGER',          // Default module name when not provided in log calls
+    defaultUserName:        'UNKNOWN',            // Default user name when APEX context not available
+
+    // Security and data handling
+    enableDataMasking:      true,                 // Enable masking of sensitive fields
+    sensitiveFields:        ['password', 'token', 'ssn'],  // Fields to mask in log data
+    maxDataSize:            10000,                // Maximum data size in bytes before truncation
+    maxErrorStringLength:    100,                  // Maximum length for error string display
+
+    // Timing configuration
+    timingDecimalPlaces:    2                    // Decimal places for timing display (e.g., "123.45ms")
   };
 
   // Current active configuration (this is the single source of truth)
@@ -40,17 +53,13 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
   /* ================================================================================================= */
-  // Log level constants (matching Oracle Logger)
+  // Log level constants (only implemented levels)
   var LOG_LEVELS = {
-    OFF: 0,
-    PERMANENT: 1,
-    ERROR: 2,
-    WARNING: 4,
-    INFORMATION: 8,
-    DEBUG: 16,
-    TIMING: 32,
-    SYS_CONTEXT: 64,
-    APEX: 128
+    OFF:          0,  // Blocks console output only - server logging still works if enableServer is true
+    ERROR:        2,  // logger.error() method
+    WARNING:      4,  // logger.warning() method
+    INFORMATION:  8,  // logger.log() and logger.logServer() methods (default)
+    TIMING:      32   // Has styling but timeStop() uses INFORMATION level
   };
 
 
@@ -66,25 +75,25 @@ namespace.loggerConfig = (function (namespace, undefined) {
   var ENV_CONFIGS = {
     development: {
       level: 'INFORMATION',
-      enableConsole: true,
       enableServer: false,
       enableDataMasking: false, // Less strict in dev
-      maxDataSize: 50000 // Larger in dev for debugging
+      maxDataSize: 50000, // Larger in dev for debugging
+      serverProcessName: 'LOG_ENTRY_DEV' // Optional: different process for dev
     },
     testing: {
       level: 'INFORMATION',
-      enableConsole: true,
       enableServer: true,
       enableDataMasking: true,
-      maxDataSize: 20000
+      maxDataSize: 20000,
+      serverProcessName: 'LOG_ENTRY' // Can use same or different process
     },
     production: {
-      level: 'WARNING',
-      enableConsole: false,
+      level: 'WARNING',  // Only show warnings and errors in production
       enableServer: true,
       enableDataMasking: true, // Strict in production
       sensitiveFields: ['password', 'token', 'ssn', 'credit_card', 'api_key'],
-      maxDataSize: 5000 // Smaller in production
+      maxDataSize: 5000, // Smaller in production
+      serverProcessName: 'LOG_ENTRY' // Production process name
     }
   };
 
@@ -108,8 +117,7 @@ namespace.loggerConfig = (function (namespace, undefined) {
       ERROR: 'color: #ff9999; font-weight: bold',        // Soft red
       WARNING: 'color: #ffcc99; font-weight: bold',      // Soft orange
       INFORMATION: 'color: #99ccff; font-weight: bold',  // Soft blue
-      TIMING: 'color: #99cc99; font-weight: bold',       // Soft green
-      PERMANENT: 'color: #cc99ff; font-weight: bold; background: #fff9cc'  // Soft purple with cream background
+      TIMING: 'color: #99cc99; font-weight: bold'       // Soft green
     }
   };
 
@@ -156,15 +164,6 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
 
-  /* ================================================================================================= */
-  /**
-   * Validate log level
-   * @param {string} level - The level to validate
-   * @returns {boolean} - Whether the level is valid
-   */
-  var isValidLevel = function (level) {
-    return LOG_LEVELS[level.toUpperCase()] !== undefined;
-  };
 
 
 
@@ -174,43 +173,6 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
 
-  /* ================================================================================================= */
-  /**
-   * Validate configuration options
-   * @param {Object} config - Configuration to validate
-   * @returns {Object} - Validation result with isValid and errors
-   */
-  var validateConfig = function (config) {
-    var errors = [];
-    var isValid = true;
-
-    if (config.level && !isValidLevel(config.level)) {
-      errors.push('Invalid log level: ' + config.level);
-      isValid = false;
-    }
-
-
-
-    if (config.maxDataSize && (typeof config.maxDataSize !== 'number' || config.maxDataSize < 100)) {
-      errors.push('maxDataSize must be at least 100 bytes');
-      isValid = false;
-    }
-
-    if (config.maxTimingUnits && (typeof config.maxTimingUnits !== 'number' || config.maxTimingUnits < 10)) {
-      errors.push('maxTimingUnits must be at least 10');
-      isValid = false;
-    }
-
-    if (config.sensitiveFields && !Array.isArray(config.sensitiveFields)) {
-      errors.push('sensitiveFields must be an array');
-      isValid = false;
-    }
-
-    return {
-      isValid: isValid,
-      errors: errors
-    };
-  };
 
 
 
@@ -278,6 +240,18 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
 
+  /* ================================================================================================= */
+  /**
+   * Reset log level to default (INFORMATION)
+   * Convenient way to restore default logging after changing level
+   */
+  var resetLevel = function () {
+    currentConfig.level = DEFAULT_CONFIG.level;
+  };
+
+
+
+
 
 
 
@@ -317,39 +291,6 @@ namespace.loggerConfig = (function (namespace, undefined) {
 
 
 
-  /* ================================================================================================= */
-  /**
-   * Enable or disable console output
-   * @param {boolean} enabled - Whether to enable console output
-   */
-  var enableConsole = function (enabled) {
-    currentConfig.enableConsole = enabled;
-    console.log('Logger console output ' + (enabled ? 'enabled' : 'disabled'));
-  };
-
-
-
-
-
-
-
-
-
-  /* ================================================================================================= */
-  /**
-   * Check if console output is enabled
-   * @returns {boolean} - Current console output status
-   */
-  var isConsoleEnabled = function () {
-    return currentConfig.enableConsole;
-  };
-
-
-
-
-
-
-
 
 
   /* ================================================================================================= */
@@ -362,16 +303,12 @@ namespace.loggerConfig = (function (namespace, undefined) {
     getEnhancedConfig: getEnhancedConfig,
     getCurrentConfig: getCurrentConfig,
 
-    // Validation functions
-    validateConfig: validateConfig,
-
     // Logger control functions (moved from logger.js)
     setLevel: setLevel,
     getLevel: getLevel,
+    resetLevel: resetLevel,
     configure: configure,
     getConfig: getConfig,
-    enableConsole: enableConsole,
-    isConsoleEnabled: isConsoleEnabled,
 
     // Constants
     LOG_LEVELS: LOG_LEVELS

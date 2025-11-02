@@ -40,16 +40,17 @@ namespace.logger = (function (namespace) {
     var levelNum = typeof level === 'string' ? LOG_LEVELS[level.toUpperCase()] : level;
     var configNum = LOG_LEVELS[config.level.toUpperCase()];
 
-    // PERMANENT always logs, even when OFF
-    if (levelNum === LOG_LEVELS.PERMANENT) {
-      return true;
-    }
-
-    // OFF blocks everything except PERMANENT
+    // OFF blocks everything - no logging at all
     if (configNum === LOG_LEVELS.OFF) {
       return false;
     }
 
+    // If level is undefined, don't log (invalid level)
+    if (levelNum === undefined) {
+      return false;
+    }
+
+    // Only log if log level is less than or equal to configured level
     return levelNum <= configNum;
   };
 
@@ -72,15 +73,19 @@ namespace.logger = (function (namespace) {
   var _sendToServer = function (logEntry) {
     if (!config.enableServer) return;
 
-    var retryAttempts = 0;
+    var retryAttempts = config.retryAttemptInitial || 0;
     var maxRetries = config.retryCount || 1;
 
     var attemptSend = function () {
       try {
-        apex.server.process('LOG_ENTRY', {
+        var processName = config.serverProcessName || 'JS_LOGGER';
+        var defaultModule = config.defaultModuleName || 'JS_LOGGER';
+        var retryDelayBase = config.retryDelayBase || 1000;
+
+        apex.server.process(processName, {
           x01: logEntry.level,
           x02: logEntry.text,
-          x03: logEntry.module || 'JS_LOGGER',
+          x03: logEntry.module || defaultModule,
           x04: JSON.stringify(logEntry.extra || {}),
           x05: logEntry.timestamp,
           x06: logEntry.user,
@@ -95,24 +100,20 @@ namespace.logger = (function (namespace) {
             retryAttempts++;
             if (retryAttempts <= maxRetries) {
               // Exponential backoff retry
-              setTimeout(attemptSend, 1000 * retryAttempts);
+              setTimeout(attemptSend, retryDelayBase * retryAttempts);
             } else {
               // Mark server as failed, switch to console-only mode
               config._serverError = true;
-              if (config.enableConsole) {
-                console.warn('Logger server failed, using console fallback');
-                console.log(_formatConsoleMessage(logEntry));
-              }
+              console.warn('Logger server failed, using console fallback');
+              console.log(_formatConsoleMessage(logEntry));
             }
           }
         });
       } catch (e) {
         // APEX not available or other critical error
         config._serverError = true;
-        if (config.enableConsole) {
-          console.error('Logger server error:', e.message);
-          console.log(_formatConsoleMessage(logEntry));
-        }
+        console.error('Logger server error:', e.message);
+        console.log(_formatConsoleMessage(logEntry));
       }
     };
 
@@ -139,34 +140,34 @@ namespace.logger = (function (namespace) {
     var timestamp = new Date(logEntry.timestamp).toLocaleTimeString();
     var level = logEntry.level.toUpperCase();
     var module = logEntry.module ? `[${logEntry.module}]` : '';
-    var extra = logEntry.extra ? ` ${JSON.stringify(logEntry.extra)}` : '';
 
     // Get styles from config (single source of truth)
     var consoleConfig = namespace.loggerConfig.getConsoleConfig();
     var styles = consoleConfig.levelStyles;
 
+    // Prepare console arguments - log extra data as separate argument for better formatting
+    var message = `%c[${timestamp}] ${level}%c ${module} ${logEntry.text}`;
+    var consoleArgs = [message, styles[level] || styles.INFORMATION, 'color: inherit'];
+
+    // Add extra data as separate argument so browser can format it nicely
+    if (logEntry.extra) {
+      consoleArgs.push(logEntry.extra);
+    }
+
     // Use appropriate console method with styles from config
     switch (level) {
       case 'ERROR':
-        console.error(`%c[${timestamp}] ERROR%c ${module} ${logEntry.text}${extra}`,
-          styles.ERROR, 'color: inherit');
+        console.error.apply(console, consoleArgs);
         break;
       case 'WARNING':
-        console.warn(`%c[${timestamp}] WARNING%c ${module} ${logEntry.text}${extra}`,
-          styles.WARNING, 'color: inherit');
-        break;
-      case 'PERMANENT':
-        console.log(`%c[${timestamp}] PERMANENT%c ${module} ${logEntry.text}${extra}`,
-          styles.PERMANENT, 'color: inherit');
+        console.warn.apply(console, consoleArgs);
         break;
       case 'TIMING':
-        console.log(`%c[${timestamp}] TIMING%c ${module} ${logEntry.text}${extra}`,
-          styles.TIMING, 'color: inherit');
+        console.log.apply(console, consoleArgs);
         break;
-      case 'INFORMATION':
+      case 'INFORMATION': // this is the default level logger.log
       default:
-        console.log(`%c[${timestamp}] INFO%c ${module} ${logEntry.text}${extra}`,
-          styles.INFORMATION, 'color: inherit');
+        console.log.apply(console, consoleArgs);
         break;
     }
   };
@@ -238,10 +239,11 @@ namespace.logger = (function (namespace) {
 
     } catch (e) {
       // Circular reference or other JSON error
+      var maxErrorLength = config.maxErrorStringLength || 100;
       return {
         _error: 'Could not serialize data',
         _type: typeof data,
-        _string: String(data).substring(0, 100)
+        _string: String(data).substring(0, maxErrorLength)
       };
     }
   };
@@ -312,13 +314,14 @@ namespace.logger = (function (namespace) {
    * @returns {Object} - Formatted log entry
    */
   var _createLogEntry = function (text, module, extra, level) {
+    var defaultUser = config.defaultUserName || 'UNKNOWN';
     var logEntry = {
       timestamp: new Date().toISOString(),
       level: level || 'INFORMATION',
       text: text,
       module: module,
       extra: _sanitizeData(extra),
-      user: (typeof apex !== 'undefined' && apex.env && apex.env.APP_USER) || 'UNKNOWN',
+      user: (typeof apex !== 'undefined' && apex.env && apex.env.APP_USER) || defaultUser,
       page: (typeof apex !== 'undefined' && apex.env && apex.env.APP_PAGE_ID) || 0,
       session: (typeof apex !== 'undefined' && apex.env && apex.env.APP_SESSION) || 0
     };
@@ -331,23 +334,31 @@ namespace.logger = (function (namespace) {
   /* ================================================================================================= */
 
   /**
-   * Console-only logging function (no database storage) - Always INFORMATION level
+   * Console logging function with optional server storage - Always INFORMATION level
    * @author Angel O. Flores Torres
    * @created 2025
    *
    * @param {string} text - The log message
    * @param {string} module - The module name
    * @param {Object} extra - Extra data
+   * @param {Object} options - Optional configuration
+   * @param {boolean} options.sendToServer - If true, also send to server (default: false)
    */
-  var log = function (text, module, extra) {
+  var log = function (text, module, extra, options) {
     try {
+      var opts = options || {};
+      var sendToServer = opts.sendToServer === true;
+
       var logEntry = _createLogEntry(text, module, extra, 'INFORMATION');
 
-      if (!_shouldLog(logEntry.level)) return;
-
-      // Console output only - no server sync
-      if (config.enableConsole) {
+      // Console output respects level filtering
+      if (_shouldLog(logEntry.level)) {
         _outputToConsole(logEntry);
+      }
+
+      // Optionally send to server (bypasses level check)
+      if (sendToServer && config.enableServer) {
+        _sendToServer(logEntry);
       }
     } catch (e) {
       // Fallback logging if main logging fails
@@ -380,15 +391,16 @@ namespace.logger = (function (namespace) {
     try {
       var logEntry = _createLogEntry(text, module, extra, 'INFORMATION');
 
-      if (!_shouldLog(logEntry.level)) return;
-
-      // Console output with colors
-      if (config.enableConsole) {
-        _outputToConsole(logEntry);
+      // Server logging bypasses level check - always send if enabled
+      // This allows server logging even when console is disabled
+      if (config.enableServer) {
+        _sendToServer(logEntry);
       }
 
-      // Send directly to server (no buffering)
-      _sendToServer(logEntry);
+      // Console output respects level filtering
+      if (_shouldLog(logEntry.level)) {
+        _outputToConsole(logEntry);
+      }
     } catch (e) {
       // Fallback logging if main logging fails
       if (typeof console !== 'undefined') {
@@ -408,23 +420,31 @@ namespace.logger = (function (namespace) {
 
   /* ================================================================================================= */
   /**
-   * Console-only error logging
+   * Error logging with optional server storage - ERROR level
    * @author Angel O. Flores Torres
    * @created 2025
    *
    * @param {string} text - The error message
    * @param {string} module - The module name
    * @param {Object} extra - Extra data
+   * @param {Object} options - Optional configuration
+   * @param {boolean} options.sendToServer - If true, also send to server (default: false)
    */
-  var error = function (text, module, extra) {
+  var error = function (text, module, extra, options) {
     try {
+      var opts = options || {};
+      var sendToServer = opts.sendToServer === true;
+
       var logEntry = _createLogEntry(text, module, extra, 'ERROR');
 
-      if (!_shouldLog(logEntry.level)) return;
-
-      // Console output only - no server sync
-      if (config.enableConsole) {
+      // Console output respects level filtering
+      if (_shouldLog(logEntry.level)) {
         _outputToConsole(logEntry);
+      }
+
+      // Optionally send to server (bypasses level check)
+      if (sendToServer && config.enableServer) {
+        _sendToServer(logEntry);
       }
     } catch (e) {
       // Fallback logging if main logging fails
@@ -445,23 +465,31 @@ namespace.logger = (function (namespace) {
 
   /* ================================================================================================= */
   /**
-   * Console-only warning logging
+   * Warning logging with optional server storage - WARNING level
    * @author Angel O. Flores Torres
    * @created 2025
    *
    * @param {string} text - The warning message
    * @param {string} module - The module name
    * @param {Object} extra - Extra data
+   * @param {Object} options - Optional configuration
+   * @param {boolean} options.sendToServer - If true, also send to server (default: false)
    */
-  var warning = function (text, module, extra) {
+  var warning = function (text, module, extra, options) {
     try {
+      var opts = options || {};
+      var sendToServer = opts.sendToServer === true;
+
       var logEntry = _createLogEntry(text, module, extra, 'WARNING');
 
-      if (!_shouldLog(logEntry.level)) return;
-
-      // Console output only - no server sync
-      if (config.enableConsole) {
+      // Console output respects level filtering
+      if (_shouldLog(logEntry.level)) {
         _outputToConsole(logEntry);
+      }
+
+      // Optionally send to server (bypasses level check)
+      if (sendToServer && config.enableServer) {
+        _sendToServer(logEntry);
       }
     } catch (e) {
       // Fallback logging if main logging fails
@@ -514,7 +542,8 @@ namespace.logger = (function (namespace) {
     }
 
     var elapsed = performance.now() - timingUnits[unit];
-    var message = `${unit} completed in ${elapsed.toFixed(2)}ms`;
+    var decimalPlaces = config.timingDecimalPlaces || 2;
+    var message = `${unit} completed in ${elapsed.toFixed(decimalPlaces)}ms`;
 
     log(message, module, { unit: unit, elapsed: elapsed });
 
@@ -530,27 +559,6 @@ namespace.logger = (function (namespace) {
 
 
 
-  /* ================================================================================================= */
-  /**
-   * Stop timing for a unit and log to server (includes database storage)
-   * @param {string} unit - The timing unit name
-   * @param {string} module - The module name
-   * @returns {number} - Time elapsed in milliseconds
-   */
-  var timeStopServer = function (unit, module) {
-    if (!timingUnits[unit]) {
-      console.warn(`Timing unit '${unit}' was not started`);
-      return 0;
-    }
-
-    var elapsed = performance.now() - timingUnits[unit];
-    var message = `${unit} completed in ${elapsed.toFixed(2)}ms`;
-
-    logServer(message, module, { unit: unit, elapsed: elapsed });
-
-    delete timingUnits[unit];
-    return elapsed;
-  };
 
 
 
@@ -592,17 +600,17 @@ namespace.logger = (function (namespace) {
       getExtra: function () {
         return Object.assign({}, moduleExtra);
       },
-      log: function (text, extra) {
+      log: function (text, extra, options) {
         var combinedExtra = Object.assign({}, moduleExtra, extra || {});
-        log(text, moduleName, combinedExtra);
+        log(text, moduleName, combinedExtra, options);
       },
-      error: function (text, extra) {
+      error: function (text, extra, options) {
         var combinedExtra = Object.assign({}, moduleExtra, extra || {});
-        error(text, moduleName, combinedExtra);
+        error(text, moduleName, combinedExtra, options);
       },
-      warning: function (text, extra) {
+      warning: function (text, extra, options) {
         var combinedExtra = Object.assign({}, moduleExtra, extra || {});
-        warning(text, moduleName, combinedExtra);
+        warning(text, moduleName, combinedExtra, options);
       },
       logServer: function (text, extra) {
         var combinedExtra = Object.assign({}, moduleExtra, extra || {});
@@ -613,9 +621,6 @@ namespace.logger = (function (namespace) {
       },
       timeStop: function (unit) {
         return timeStop(unit, moduleName);
-      },
-      timeStopServer: function (unit) {
-        return timeStopServer(unit, moduleName);
       }
     };
   };
@@ -639,7 +644,6 @@ namespace.logger = (function (namespace) {
     // Timing functions
     timeStart: timeStart, // namespace.logger.timeStart("page-load");
     timeStop: timeStop, // namespace.logger.timeStop("page-load", "performance");
-    timeStopServer: timeStopServer, // namespace.logger.timeStopServer("database-query", "production-performance");
 
 
 
