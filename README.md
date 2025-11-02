@@ -10,8 +10,7 @@ A JavaScript logging library that mimics Oracle Logger functionality, designed s
 - [Purpose](#-purpose)
 - [Quick Start](#-quick-start)
 - [API Reference](#-api-reference)
-- [Configuration](#-configuration)
-- [Utilities](#-utilities)
+- [Configuration Management](#-configuration-management)
 - [APEX Integration](#-apex-integration)
 - [Log Level Filtering](#-log-level-filtering)
 - [Server Setup](#️-server-setup-optional)
@@ -55,7 +54,6 @@ Include the library files in your Oracle APEX application:
 ```html
 <!-- In WorkspaceFiles/Application files > JavaScript > File URLs -->
 #APP_FILES#js/logger-config.js
-#APP_FILES#js/logger-utils.js
 #APP_FILES#js/logger.js
 ```
 
@@ -64,16 +62,18 @@ Include the library files in your Oracle APEX application:
 
 ### Core Logging Methods
 
-All logging methods share the same signature: `(text, module, extra)`
+All console-only logging methods share the same signature: `(text, module, extra, options)`
 
 **Parameters:**
 - **`text`** (string, required) - The log message
 - **`module`** (string, optional) - Module or component name for context
 - **`extra`** (Object, optional) - Additional data (automatically sanitized and masked)
+- **`options`** (Object, optional) - Optional configuration
+  - **`options.sendToServer`** (boolean, default: false) - If true, also send to server
 
 ---
 
-#### `namespace.logger.log(text, module, extra)`
+#### `namespace.logger.log(text, module, extra, options)`
 INFORMATION level - console only (blue output)
 
 **Example:**
@@ -90,7 +90,7 @@ namespace.logger.log('User logged in', 'authentication', { userId: 123, role: 'a
 
 ---
 
-#### `namespace.logger.error(text, module, extra)`
+#### `namespace.logger.error(text, module, extra, options)`
 ERROR level - console only (red output)
 
 **Example:**
@@ -103,7 +103,7 @@ namespace.logger.error('Database connection failed', 'database', {
 
 ---
 
-#### `namespace.logger.warning(text, module, extra)`
+#### `namespace.logger.warning(text, module, extra, options)`
 WARNING level - console only (orange output)
 
 **Example:**
@@ -167,25 +167,6 @@ var elapsed = namespace.logger.timeStop('data_loading', 'performance');
 
 ---
 
-#### `namespace.logger.timeStopServer(unit, module)`
-Stop timer and log to console + database
-
-**Parameters:**
-- **`unit`** (string, required) - Timer identifier
-- **`module`** (string, optional) - Module name for context
-
-**Returns:** `number` - Elapsed time in milliseconds
-
-**Example:**
-```javascript
-namespace.logger.timeStart('critical_operation');
-// ... perform operation ...
-var elapsed = namespace.logger.timeStopServer('critical_operation', 'production');
-// Logs to console AND database
-```
-
----
-
 ### Module Logger
 
 #### `namespace.logger.createModuleLogger(moduleName)`
@@ -195,10 +176,10 @@ Creates a scoped logger with pre-configured module name and persistent extra dat
 - **`moduleName`** (string, required) - Module name (automatically applied to all logs)
 
 **Returns:** Logger object with these methods:
-- `log(text, extra)`, `error(text, extra)`, `warning(text, extra)`, `logServer(text, extra)`
+- `log(text, extra, options)`, `error(text, extra, options)`, `warning(text, extra, options)`, `logServer(text, extra)`
 - `setExtra(extraData)` - Set persistent extra data for all subsequent logs
 - `clearExtra()`, `getExtra()` - Manage persistent data
-- `timeStart(unit)`, `timeStop(unit)`, `timeStopServer(unit)` - Timing methods
+- `timeStart(unit)`, `timeStop(unit)` - Timing methods
 
 **Example:**
 ```javascript
@@ -246,7 +227,7 @@ namespace.logger.log('Login attempt', 'auth', {
 
 ## 🔧 Configuration Management
 
-### Configuration Methods
+### Basic Configuration
 
 ```javascript
 // Get environment-specific configuration
@@ -259,23 +240,14 @@ namespace.loggerConfig.configure(devConfig);
 
 // Runtime configuration changes
 namespace.loggerConfig.setLevel('WARNING');
-namespace.loggerConfig.enableConsole(false);
+namespace.loggerConfig.resetLevel();
 
 // Get current configuration
 var currentConfig = namespace.loggerConfig.getConfig();
 var currentLevel = namespace.loggerConfig.getLevel();
-
-// Validate configuration
-var validation = namespace.loggerConfig.validateConfig({
-  level: 'INVALID_LEVEL',
-  maxDataSize: 50
-});
-if (!validation.isValid) {
-  console.error('Configuration errors:', validation.errors);
-}
 ```
 
-### Available Environments
+### Environment Presets
 
 | Environment | Console | Server | Data Masking | Max Data Size |
 |-------------|---------|--------|--------------|---------------|
@@ -285,93 +257,22 @@ if (!validation.isValid) {
 
 ---
 
-## 🛠️ Utilities
-
-### APEX Context Functions
-
-```javascript
-// Get APEX context information
-var ctx = namespace.loggerUtils.getApexContext(['APP_USER', 'APP_PAGE_ID', 'APP_SESSION']);
-// Returns: { APP_USER: 'JOHN.DOE', APP_PAGE_ID: 123, APP_SESSION: 456789 }
-
-// Get browser information
-var browser = namespace.loggerUtils.getBrowserInfo();
-// Returns: { userAgent: 'Mozilla/5.0...', language: 'en-US', cookieEnabled: true, onLine: true }
-
-// Use in logging
-namespace.logger.log('Page loaded', 'Navigation', { 
-  context: ctx, 
-  browser: browser 
-});
-```
-
-### Module Logger Advanced Methods
-
-```javascript
-var logger = namespace.logger.createModuleLogger('MyModule');
-
-// Set persistent extra data for all logs from this module
-logger.setExtra({ userId: 123, feature: 'checkout' });
-
-// Get current extra data
-var currentExtra = logger.getExtra();
-
-// Clear extra data
-logger.clearExtra();
-
-// All subsequent logs will include the extra data
-logger.log('User action'); // Automatically includes { userId: 123, feature: 'checkout' }
-```
-
----
-
-## 🔧 Configuration
-
-### Environment-based Configuration
-
-```javascript
-// Development - verbose logging with console output
-var devConfig = namespace.loggerConfig.getEnvConfig('development');
-namespace.loggerConfig.configure(devConfig);
-
-// Production - errors only with server logging
-var prodConfig = namespace.loggerConfig.getEnvConfig('production');
-namespace.loggerConfig.configure(prodConfig);
-```
-
-### Custom Configuration Options
+### Advanced Configuration Options
 
 ```javascript
 namespace.loggerConfig.configure({
   // Log Level Control
-  level: 'WARNING',            // OFF | PERMANENT | ERROR | WARNING | INFORMATION | DEBUG | TIMING | SYS_CONTEXT | APEX
+  level: 'WARNING',            // OFF | ERROR | WARNING | INFORMATION
   
   // Output Channels
-  enableConsole: false,        // Enable/disable console output
   enableServer: true,          // Enable/disable database logging via APEX
   retryCount: 1,               // Server request retry attempts on failure
   
   // Data Protection
   enableDataMasking: true,     // Auto-mask sensitive fields
   sensitiveFields: ['password','token','ssn','credit_card','api_key'],
-  maxDataSize: 5000,           // Max bytes for extra data (prevents large payloads)
-  
-  // Performance
-  maxTimingUnits: 100          // Max concurrent timing operations
+  maxDataSize: 5000            // Max bytes for extra data (prevents large payloads)
 });
-```
-
-## 🧰 Utilities
-
-```javascript
-// Get APEX context values
-var ctx = namespace.loggerUtils.getApexContext(['APP_USER','APP_PAGE_ID']);
-
-// Get browser info
-var browser = namespace.loggerUtils.getBrowserInfo();
-
-// Use with logs
-namespace.logger.log('Processing ticket', 'tickets', { ctx: ctx, browser: browser });
 ```
 
 ## 🌐 APEX Integration
@@ -424,14 +325,11 @@ namespace.logger.error('This WILL show');        // Shown
 
 | Level | Value | API Method | Description |
 |-------|-------|------------|-------------|
+| OFF | 0 | Configuration only | Disable all console logging |
 | ERROR | 2 | `logger.error()` | Error messages - red console output |
 | WARNING | 4 | `logger.warning()` | Warning messages - orange console output |
 | INFORMATION | 8 | `logger.log()`, `logger.logServer()` | Information messages - blue console output |
-
-**Configuration-only levels** (used for filtering, no dedicated API methods):
-- **OFF** (0) - Disable all logging
-- **PERMANENT** (1) - Reserved for future critical logs
-- **DEBUG** (16), **TIMING** (32), **SYS_CONTEXT** (64), **APEX** (128) - Reserved for future use
+| TIMING | 32 | Configuration only | Styling for timing logs (timeStop uses INFORMATION) |
 
 ---
 
@@ -503,9 +401,8 @@ ORDER BY time_stamp DESC;
 ```
 oracle-apex-js-logger/
 ├── src/                    # Source files
-│   ├── logger.js          # Main logger implementation
 │   ├── logger-config.js   # Configuration management
-│   └── logger-utils.js    # Utility functions
+│   └── logger.js          # Main logger implementation
 ├── examples/              # Focused examples
 ├── demo/                  # Complete demo app
 ├── test/                  # Test suite

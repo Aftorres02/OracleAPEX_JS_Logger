@@ -37,7 +37,6 @@
 
     <!-- Load logger files -->
     <script src="../src/logger-config.js"></script>
-    <script src="../src/logger-utils.js"></script>
     <script src="../src/logger.js"></script>
 
     <script>
@@ -125,22 +124,17 @@
                 log('❌ Timing failed: ' + e.message);
             }
 
-            // Test 7: Configuration validation
-            log('Test 7: Configuration validation');
+            // Test 7: Configuration and level changes
+            log('Test 7: Configuration and level changes');
             try {
-                var validation = namespace.loggerConfig.validateConfig({
-                    level: 'INVALID_LEVEL',          // invalid level
-                    maxDataSize: 50,                 // too small
-                    maxTimingUnits: 5,               // too small
-                    sensitiveFields: 'not-array'     // invalid type
-                });
-                if (!validation.isValid && validation.errors.length > 0) {
-                    log('✅ Configuration validation works');
-                } else {
-                    log('❌ Configuration validation failed');
-                }
+                var initialLevel = namespace.loggerConfig.getLevel();
+                namespace.loggerConfig.setLevel('WARNING');
+                namespace.logger.log('This should be hidden');
+                namespace.logger.warning('This should show');
+                namespace.loggerConfig.setLevel(initialLevel);
+                log('✅ Configuration changes work');
             } catch (e) {
-                log('❌ Configuration validation failed: ' + e.message);
+                log('❌ Configuration changes failed: ' + e.message);
             }
 
             // Test 8: Error handling (server failure simulation)

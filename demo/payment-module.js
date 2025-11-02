@@ -61,14 +61,15 @@ namespace.paymentModule = (function (namespace, $, undefined) {
 
         // Simulate payment processing
         setTimeout(function() {
-          // Stop timing and log to server (for performance monitoring)
-          logger.timeStopServer("payment-processing");
+          // Stop timing and get elapsed time
+          var elapsed = logger.timeStop("payment-processing");
 
           // Log successful payment to server (for business monitoring)
           logger.logServer("Payment processed successfully", {
             orderId: paymentData.orderId,
             amount: paymentData.amount,
             method: paymentData.method,
+            elapsed: elapsed,
             timestamp: new Date().toISOString()
           });
 
@@ -164,14 +165,15 @@ namespace.paymentModule = (function (namespace, $, undefined) {
 
         // Simulate refund processing
         setTimeout(function() {
-          // Stop timing and log to server
-          logger.timeStopServer("refund-processing");
+          // Stop timing and get elapsed time
+          var elapsed = logger.timeStop("refund-processing");
 
           // Log refund to server (important business event)
           logger.logServer("Refund processed successfully", {
             originalTransactionId: transactionId,
             refundAmount: amount,
             refundId: "REF_" + Date.now(),
+            elapsed: elapsed,
             timestamp: new Date().toISOString()
           });
 
@@ -212,8 +214,11 @@ namespace.paymentModule = (function (namespace, $, undefined) {
 
 /*
 
-// Enable console logging for development
-namespace.loggerConfig.enableConsole(true);
+// Configure for development
+namespace.loggerConfig.configure({
+  level: 'INFORMATION',
+  enableServer: true
+});
 
 // Use the payment module
 var paymentData = {

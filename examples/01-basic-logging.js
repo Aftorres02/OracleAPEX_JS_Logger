@@ -11,7 +11,6 @@ var namespace = namespace || {};
 // Configure logger for development
 namespace.loggerConfig.configure({
   level: 'INFORMATION',
-  enableConsole: true,
   enableServer: false  // Console only for this example
 });
 

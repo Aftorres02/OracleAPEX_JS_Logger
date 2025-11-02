@@ -11,8 +11,7 @@ var namespace = namespace || {};
 // Configure logger
 namespace.loggerConfig.configure({
   level: 'INFORMATION',
-  enableConsole: true,
-  enableServer: false
+  enableServer: false  // Console-only for this example
 });
 
 /* ================================================================ */
@@ -58,11 +57,13 @@ function serverTimingExample() {
   // Enable server logging
   namespace.loggerConfig.configure({ enableServer: true });
   
-  namespace.logger.timeStart('critical_operation');
+  var logger = namespace.logger.createModuleLogger('Production');
+  logger.timeStart('critical_operation');
   
   setTimeout(function() {
-    // This will send timing to server via APEX process
-    namespace.logger.timeStopServer('critical_operation', 'Production');
+    var elapsed = logger.timeStop('critical_operation');
+    // Log timing to server
+    logger.logServer('Critical operation completed', { elapsed: elapsed });
   }, 2000);
 }
 

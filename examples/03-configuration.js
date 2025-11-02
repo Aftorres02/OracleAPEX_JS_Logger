@@ -40,13 +40,11 @@ function productionConfig() {
 function customConfig() {
   namespace.loggerConfig.configure({
     level: 'WARNING',           // Only WARNING and ERROR
-    enableConsole: true,         // Keep console for debugging
     enableServer: true,          // Send to server
     retryCount: 3,              // Retry failed server calls 3 times
     enableDataMasking: true,    // Mask sensitive data
     sensitiveFields: ['password', 'token', 'ssn', 'credit_card', 'api_key'],
-    maxDataSize: 5000,          // Limit extra data size
-    maxTimingUnits: 100         // Limit timing units in memory
+    maxDataSize: 5000           // Limit extra data size
   });
   
   namespace.logger.log('This will NOT show (level too low)');
@@ -58,39 +56,22 @@ function customConfig() {
 // Scenario 4: Dynamic Configuration (switch at runtime)
 /* ================================================================ */
 function dynamicConfig() {
-  // Start with production
+  // Start with production config
   namespace.loggerConfig.configure(namespace.loggerConfig.getEnvConfig('production'));
-  namespace.logger.log('Running in production mode', 'Config');
+  console.log('Starting in production mode');
   
-  // Temporarily enable console for debugging
-  namespace.loggerConfig.enableConsole(true);
-  namespace.logger.log('Console enabled for debugging', 'Config');
-  
-  // Change log level
+  // Change log level to see more information
   namespace.loggerConfig.setLevel('INFORMATION');
   namespace.logger.log('Log level changed to INFORMATION', 'Config');
   
-  // Disable console again
-  namespace.loggerConfig.enableConsole(false);
-}
-
-/* ================================================================ */
-// Scenario 5: Configuration Validation
-/* ================================================================ */
-function validateConfiguration() {
-  var invalidConfig = {
-    level: 'INVALID_LEVEL',
-    maxDataSize: 50,              // Too small
-    maxTimingUnits: 5,            // Too small
-    sensitiveFields: 'not-array'  // Wrong type
-  };
+  // Change back to WARNING level
+  namespace.loggerConfig.setLevel('WARNING');
+  namespace.logger.log('This will NOT show (level too low)', 'Config');
+  namespace.logger.warning('This WILL show', 'Config');
   
-  var validation = namespace.loggerConfig.validateConfig(invalidConfig);
-  
-  if (!validation.isValid) {
-    console.error('Configuration errors:', validation.errors);
-    // Output: ['Invalid log level: INVALID_LEVEL', 'maxDataSize must be at least 100 bytes', ...]
-  }
+  // Reset to default
+  namespace.loggerConfig.resetLevel();
+  console.log('Reset to default level:', namespace.loggerConfig.getLevel());
 }
 
 /* ================================================================ */
@@ -100,4 +81,3 @@ developmentConfig();
 // productionConfig();
 // customConfig();
 // dynamicConfig();
-// validateConfiguration();

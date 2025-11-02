@@ -10,8 +10,7 @@ var namespace = namespace || {};
 
 // Configure logger
 namespace.loggerConfig.configure({
-  level: 'INFORMATION',
-  enableConsole: true
+  level: 'INFORMATION'
 });
 
 /* ================================================================ */

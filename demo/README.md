@@ -11,7 +11,7 @@ This folder contains complete, production-ready modules demonstrating best pract
 
 - Module logger pattern with persistent context
 - Console-only vs server logging
-- Performance timing with `timeStart()`/`timeStopServer()`
+- Performance timing with `timeStart()`/`timeStop()`
 - Error handling and validation logging
 - Business event logging for audit trails
 
@@ -25,7 +25,6 @@ This folder contains complete, production-ready modules demonstrating best pract
 ```html
 <!-- Upload to Static Application Files -->
 #APP_FILES#js/logger-config.js
-#APP_FILES#js/logger-utils.js
 #APP_FILES#js/logger.js
 #APP_FILES#js/payment-module.js
 ```
@@ -34,7 +33,6 @@ This folder contains complete, production-ready modules demonstrating best pract
 // Configure for your environment
 namespace.loggerConfig.configure({
   level: 'INFORMATION',
-  enableConsole: true,
   enableServer: true
 });
 

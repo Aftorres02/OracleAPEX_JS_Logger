@@ -13,11 +13,10 @@ open test/logger-test.html
 
 Features tested:
 - ✓ Basic logging (log, error, warning)
-- ✓ Log level configuration
+- ✓ Log level configuration and changes
 - ✓ Module logger API
 - ✓ Data sanitization (sensitive field masking)
 - ✓ Performance timing
-- ✓ Configuration validation
 - ✓ Server error handling and fallback
 - ✓ Circular reference handling
 
@@ -36,10 +35,9 @@ Features tested:
 ```
 test/
 ├── logger-test.html        # Manual test page (current)
-├── logger.test.js          # Unit tests for logger.js
-├── logger-config.test.js   # Unit tests for logger-config.js
-├── logger-utils.test.js    # Unit tests for logger-utils.js
-└── integration.test.js     # Integration tests
+├── logger.test.js          # Unit tests for logger.js (planned)
+├── logger-config.test.js   # Unit tests for logger-config.js (planned)
+└── integration.test.js     # Integration tests (planned)
 ```
 
 ### Running Tests (Future)

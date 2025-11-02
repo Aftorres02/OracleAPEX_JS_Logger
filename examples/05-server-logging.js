@@ -11,7 +11,6 @@ var namespace = namespace || {};
 // Configure for server logging
 namespace.loggerConfig.configure({
   level: 'INFORMATION',
-  enableConsole: true,
   enableServer: true,      // Enable server logging
   retryCount: 2            // Retry failed calls twice
 });
@@ -84,8 +83,9 @@ function logPerformanceToServer() {
   
   // Simulate report generation
   setTimeout(function() {
-    // Send timing to server for performance tracking
-    logger.timeStopServer('report_generation');
+    // Get elapsed time and log to server
+    var elapsed = logger.timeStop('report_generation');
+    logger.logServer('Report generation completed', { elapsed: elapsed });
   }, 3500);
 }
 
