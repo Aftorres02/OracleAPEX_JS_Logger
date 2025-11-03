@@ -7,28 +7,28 @@ A JavaScript logging library that mimics Oracle Logger functionality, designed s
 
 ## 📑 Table of Contents
 
-- [Purpose](#-purpose)
+- [The Problem: console.log](#-the-problem-consolelog)
+- [The Solution](#-the-solution)
 - [Quick Start](#-quick-start)
+- [Advanced Examples](#-advanced-examples)
 - [API Reference](#-api-reference)
-- [Configuration Management](#-configuration-management)
-- [APEX Integration](#-apex-integration)
-- [Log Level Filtering](#-log-level-filtering)
+- [Configuration and Customization](#-configuration-and-customization)
 - [Server Setup](#️-server-setup-optional)
 - [Additional Resources](#-additional-resources)
 
-## 📖 Purpose
+## 📖 The Problem: console.log
 
-If you're building Oracle APEX applications, you need visibility into what's happening in the browser — especially in production where users can't open DevTools. This library gives you:
+When working with JavaScript, we usually use `console.log()` for debugging. However, it can generate so much content in the console that it becomes difficult to manage, and practically impossible to use in production:
 
-**The Problem:**
-- JavaScript errors happen silently in production
-- `console.log()` only works when DevTools is open
-- No way to track client-side performance issues
-- Can't audit user actions or debug reported issues
-- Sensitive data (passwords, tokens) gets logged accidentally
+- A user reports an issue, but you can't reproduce it
+- You see the error in DevTools, but users in production don't have it open
+- No audit trail for user actions
+- No performance metrics for slow operations
+- Sensitive data (passwords, tokens) might accidentally get logged
 
-**The Solution:**
-This logger provides a structured, configurable logging system that:
+## 🎯 The Solution
+
+A structured, configurable logging system that:
 - ✅ **Stores logs in your database** via APEX processes for production monitoring
 - ✅ **Colored console output** for development (blue, orange, red by level)
 - ✅ **Automatically masks sensitive data** (passwords, tokens, SSN)
@@ -37,26 +37,132 @@ This logger provides a structured, configurable logging system that:
 - ✅ **Environment-aware** — verbose in dev, quiet in production
 - ✅ **Graceful fallbacks** — if server fails, logs to console
 
-**Use Cases:**
-- 📊 Track user actions for audit trails
-- 🐛 Debug production issues without user screenshots
-- ⚡ Measure page load and API performance
-- 🔒 Monitor failed authentication attempts
-- 💰 Log business events (payments, orders)
-- 🚨 Get alerts on client-side errors
-
 ## 🚀 Quick Start
 
-### Installation
+### Step 1: Load the Files
 
-Include the library files in your Oracle APEX application:
+Load the files into your APEX application:
 
 ```html
-<!-- In WorkspaceFiles/Application files > JavaScript > File URLs -->
-#APP_FILES#js/logger-config.js
-#APP_FILES#js/logger.js
+#WORKSPACE_FILES#js/logger-config.js
+#WORKSPACE_FILES#js/logger.js
 ```
 
+### Step 2: Usage
+
+```javascript
+// Basic usage
+namespace.logger.log('Application started', 'AppMain');
+
+// With data
+namespace.logger.log('User action', 'UI', {
+  action: 'button_click',
+  pageId: apex.env.APP_PAGE_ID
+});
+
+// For production events
+namespace.logger.logServer('Payment processed', 'Payments', {
+  orderId: 'ORD-123',
+  amount: 99.99
+});
+```
+
+
+## 💡 Advanced Examples
+
+### 1. Three Log Levels with Colors
+
+The logger provides three log levels that automatically output in different colors:
+
+**Information (Blue)**
+```javascript
+namespace.logger.log('User logged in', 'Auth', { userId: 123 });
+```
+
+**Warning (Orange)**
+```javascript
+namespace.logger.warning('API slow', 'Network', { responseTime: 3500 });
+```
+
+**Error (Red)**
+```javascript
+namespace.logger.error('Validation failed', 'Form', { field: 'email' });
+```
+
+### 2. Module-Scoped Loggers
+
+Create a logger for your module with persistent context:
+
+```javascript
+// Create a module logger
+var logger = namespace.logger.createModuleLogger('PaymentModule');
+
+// Set context that applies to all logs from this module
+logger.setExtra({ version: '2.0', feature: 'checkout' });
+
+// Now all logs automatically include the context
+logger.log('Processing payment', { amount: 99.99 });
+logger.error('Payment failed', { reason: 'insufficient_funds' });
+
+// Clear context when done
+logger.clearExtra();
+```
+
+### 3. Console vs Server Logging
+
+Three logging modes for different needs:
+
+**Console-only** (development)
+```javascript
+namespace.logger.log('Debug info', 'MyModule', { data: 'value' });
+```
+
+**Console + Database** (production)
+```javascript
+namespace.logger.logServer('Important event', 'Business', { 
+  orderId: 'ORD-123',
+  action: 'order_shipped' 
+});
+```
+
+**Console + Database with options** (manual control per log)
+```javascript
+namespace.logger.log('User completed checkout', 'Ecommerce', {
+  orderId: 'ORD-123',
+  total: 99.99
+}, {
+  sendToServer: true  // Enable server sending
+});
+```
+
+### 4. Automatic Data Masking
+
+Security is built-in. Sensitive fields are automatically masked:
+
+```javascript
+namespace.logger.log('Login attempt', 'Auth', {
+  username: 'john.doe',
+  password: 'secret123',  // Automatically becomes: ***MASKED***
+  token: 'abc123'         // Automatically becomes: ***MASKED***
+});
+```
+
+### 5. Performance Timing
+
+Measure how long operations take:
+
+```javascript
+// Start timing
+namespace.logger.timeStart('page-load');
+
+// ... do work ...
+
+// Stop and log elapsed time
+var elapsed = namespace.logger.timeStop('page-load', 'Performance');
+// Output: "page-load completed in 125.43ms"
+```
+
+---
 
 ## 📖 API Reference
 
@@ -71,265 +177,93 @@ All console-only logging methods share the same signature: `(text, module, extra
 - **`options`** (Object, optional) - Optional configuration
   - **`options.sendToServer`** (boolean, default: false) - If true, also send to server
 
----
-
 #### `namespace.logger.log(text, module, extra, options)`
 INFORMATION level - console only (blue output)
-
-**Example:**
-```javascript
-// Simple log
-namespace.logger.log('Application started');
-
-// Log with module
-namespace.logger.log('User logged in', 'authentication');
-
-// Log with data
-namespace.logger.log('User logged in', 'authentication', { userId: 123, role: 'admin' });
-```
-
----
-
-#### `namespace.logger.error(text, module, extra, options)`
-ERROR level - console only (red output)
-
-**Example:**
-```javascript
-namespace.logger.error('Database connection failed', 'database', { 
-  error: 'Timeout',
-  retries: 3 
-});
-```
-
----
 
 #### `namespace.logger.warning(text, module, extra, options)`
 WARNING level - console only (orange output)
 
-**Example:**
-```javascript
-namespace.logger.warning('API response slow', 'network', { 
-  url: '/api/data',
-  responseTime: 3500 
-});
-```
-
----
+#### `namespace.logger.error(text, module, extra, options)`
+ERROR level - console only (red output)
 
 #### `namespace.logger.logServer(text, module, extra)`
 INFORMATION level - console AND database (blue output + persisted)
 
-**Example:**
-```javascript
-namespace.logger.logServer('Payment processed', 'payments', {
-  orderId: 'ORD-123',
-  amount: 99.99,
-  customerId: 456
-});
-```
-
-> 💡 **Tip:** Use `log()`, `error()`, `warning()` for development. Use `logServer()` for production events you want to persist.
-
----
-
-### Performance Timing Methods
+### Performance Timing
 
 #### `namespace.logger.timeStart(unit)`
-Start a performance timer.
-
-**Parameters:**
-- **`unit`** (string, required) - Unique timer identifier
-
-**Example:**
-```javascript
-namespace.logger.timeStart('page_load');
-namespace.logger.timeStart('api_call');
-```
-
----
+Start a performance timer
 
 #### `namespace.logger.timeStop(unit, module)`
 Stop timer and log elapsed time - console only
-
-**Parameters:**
-- **`unit`** (string, required) - Timer identifier (must match `timeStart`)
-- **`module`** (string, optional) - Module name for context
-
-**Returns:** `number` - Elapsed time in milliseconds
-
-**Example:**
-```javascript
-namespace.logger.timeStart('data_loading');
-// ... perform operation ...
-var elapsed = namespace.logger.timeStop('data_loading', 'performance');
-// Logs: "data_loading completed in 125.43ms"
-```
-
----
 
 ### Module Logger
 
 #### `namespace.logger.createModuleLogger(moduleName)`
 Creates a scoped logger with pre-configured module name and persistent extra data.
 
-**Parameters:**
-- **`moduleName`** (string, required) - Module name (automatically applied to all logs)
-
-**Returns:** Logger object with these methods:
-- `log(text, extra, options)`, `error(text, extra, options)`, `warning(text, extra, options)`, `logServer(text, extra)`
-- `setExtra(extraData)` - Set persistent extra data for all subsequent logs
-- `clearExtra()`, `getExtra()` - Manage persistent data
-- `timeStart(unit)`, `timeStop(unit)` - Timing methods
-
-**Example:**
-```javascript
-// Create module logger
-var logger = namespace.logger.createModuleLogger('PaymentModule');
-
-// Set persistent data (included in all logs from this logger)
-logger.setExtra({ feature: 'checkout', version: '2.0' });
-
-// All logs automatically include module and extra data
-logger.log('Payment started', { amount: 99.99 });
-logger.error('Payment failed', { reason: 'insufficient_funds' });
-
-// Clear persistent data if needed
-logger.clearExtra();
-```
+Returns: Logger object with `log()`, `error()`, `warning()`, `logServer()`, `setExtra()`, `clearExtra()`, `getExtra()`, `timeStart()`, `timeStop()` methods
 
 ---
 
-### Automatic Data Enhancements
+## 🔧 Configuration and Customization
 
-The logger automatically adds these fields to every log entry:
-- **`timestamp`** - ISO 8601 timestamp
-- **`level`** - Log level (INFORMATION, WARNING, ERROR)
-- **`user`** - APEX user (`apex.env.APP_USER`)
-- **`page`** - APEX page ID (`apex.env.APP_PAGE_ID`)
-- **`session`** - APEX session ID (`apex.env.APP_SESSION`)
+### Turning Off and Customizing Output
 
-### Automatic Data Protection
+To turn off logging completely we use LEVEL set to OFF.
+Then depending on what we need we can use:
+- **INFORMATION**: shows everything
+- **WARNING**: shows warnings and errors
+- **ERROR**: only errors
+- **OFF**: turns off all console logs
 
-The `extra` parameter is automatically:
-- ✅ **Sanitized** - Handles circular references safely
-- ✅ **Size-limited** - Truncated if exceeds `maxDataSize` (default: 5000 bytes)
-- ✅ **Masked** - Sensitive fields automatically hidden (password, token, ssn, etc.)
+To return to the initial configuration use `resetLevel()` or set `level: 'INFORMATION'`.
 
-**Example of automatic masking:**
 ```javascript
-namespace.logger.log('Login attempt', 'auth', {
-  username: 'john.doe',
-  password: 'secret123'  // Automatically becomes '***MASKED***'
+namespace.loggerConfig.configure({
+  level: 'OFF',  // OFF | ERROR | WARNING | INFORMATION
 });
-```
 
----
-
-## 🔧 Configuration Management
-
-### Basic Configuration
-
-```javascript
-// Get environment-specific configuration
-var devConfig = namespace.loggerConfig.getEnvConfig('development');
-var prodConfig = namespace.loggerConfig.getEnvConfig('production');
-var testConfig = namespace.loggerConfig.getEnvConfig('testing');
-
-// Apply configuration
-namespace.loggerConfig.configure(devConfig);
-
-// Runtime configuration changes
-namespace.loggerConfig.setLevel('WARNING');
+// Reset the level according to the main configuration
 namespace.loggerConfig.resetLevel();
 
-// Get current configuration
-var currentConfig = namespace.loggerConfig.getConfig();
-var currentLevel = namespace.loggerConfig.getLevel();
+// Development: detailed console output
+var devConfig = namespace.loggerConfig.getEnvConfig('development');
+namespace.loggerConfig.configure(devConfig);
+
+// Production: errors only, with server logging
+var prodConfig = namespace.loggerConfig.getEnvConfig('production');
+namespace.loggerConfig.configure(prodConfig);
 ```
-
-### Environment Presets
-
-| Environment | Console | Server | Data Masking | Max Data Size |
-|-------------|---------|--------|--------------|---------------|
-| **development** | ✅ Enabled | ❌ Disabled | ❌ Disabled | 50,000 bytes |
-| **testing** | ✅ Enabled | ✅ Enabled | ✅ Enabled | 20,000 bytes |
-| **production** | ❌ Disabled | ✅ Enabled | ✅ Enabled | 5,000 bytes |
-
----
 
 ### Advanced Configuration Options
 
 ```javascript
-namespace.loggerConfig.configure({
-  // Log Level Control
-  level: 'WARNING',            // OFF | ERROR | WARNING | INFORMATION
-  
-  // Output Channels
-  enableServer: true,          // Enable/disable database logging via APEX
-  retryCount: 1,               // Server request retry attempts on failure
-  
-  // Data Protection
-  enableDataMasking: true,     // Auto-mask sensitive fields
-  sensitiveFields: ['password','token','ssn','credit_card','api_key'],
-  maxDataSize: 5000            // Max bytes for extra data (prevents large payloads)
-});
-```
+var DEFAULT_CONFIG = {
+  // Logging behavior
+  level:                  'INFORMATION',        // Console log level - values: OFF, ERROR, WARNING, INFORMATION
+  enableServer:           true,                 // Enable server logging (database storage)
 
-## 🌐 APEX Integration
+  // Server logging configuration
+  serverProcessName:     'JS_LOGGER',          // APEX process name for server logging
+  retryCount:             1,                    // Maximum number of retry attempts
+  retryAttemptInitial:    0,                    // Initial retry attempt counter
+  retryDelayBase:         1000,                 // Base delay in milliseconds
 
-### Dynamic Actions
+  // Default values
+  defaultModuleName:      'JS_LOGGER',          // Default module name
+  defaultUserName:        'UNKNOWN',            // Default user name
 
-```javascript
-// Function for Dynamic Actions
-window.logUserAction = function(action, details) {
-  namespace.logger.log(`User action: ${action}`, 'dynamic_action', {
-    action: action,
-    details: details,
-    page: apex.env.APP_PAGE_ID
-  });
+  // Security and data handling
+  enableDataMasking:      true,                 // Enable masking of sensitive fields
+  sensitiveFields:        ['password', 'token', 'ssn'],  // Fields to mask
+  maxDataSize:            10000,                // Maximum data size in bytes
+  maxErrorStringLength:    100,                  // Maximum error string length
+
+  // Timing configuration
+  timingDecimalPlaces:    2                     // Decimal places for timing
 };
 ```
-
-### Server-side Processing
-
-The logger automatically sends logs using `apex.server.process`:
-
-- **Process name**: `LOG_ENTRY` (create this page/process in your APEX app)
-- **Parameters**: x01-x08 (level, text, module, extra, timestamp, user, page, session)
-
-## 📊 Log Level Filtering
-
-Control which logs appear by setting the log level in configuration:
-
-```javascript
-// Show only errors
-namespace.loggerConfig.configure({ level: 'ERROR' });
-namespace.logger.log('This will NOT show');      // Suppressed
-namespace.logger.warning('This will NOT show');  // Suppressed
-namespace.logger.error('This WILL show');        // Shown
-
-// Show errors and warnings
-namespace.loggerConfig.configure({ level: 'WARNING' });
-namespace.logger.log('This will NOT show');      // Suppressed
-namespace.logger.warning('This WILL show');      // Shown
-namespace.logger.error('This WILL show');        // Shown
-
-// Show everything (default)
-namespace.loggerConfig.configure({ level: 'INFORMATION' });
-namespace.logger.log('This WILL show');          // Shown
-namespace.logger.warning('This WILL show');      // Shown
-namespace.logger.error('This WILL show');        // Shown
-```
-
-### Available Log Levels
-
-| Level | Value | API Method | Description |
-|-------|-------|------------|-------------|
-| OFF | 0 | Configuration only | Disable all console logging |
-| ERROR | 2 | `logger.error()` | Error messages - red console output |
-| WARNING | 4 | `logger.warning()` | Warning messages - orange console output |
-| INFORMATION | 8 | `logger.log()`, `logger.logServer()` | Information messages - blue console output |
-| TIMING | 32 | Configuration only | Styling for timing logs (timeStop uses INFORMATION) |
 
 ---
 
@@ -339,30 +273,46 @@ To persist logs to your database, create an APEX process to receive log entries.
 
 ### 1. Create APEX Process
 
-Create a page/application process named `LOG_ENTRY`:
+Create a page/application process named `JS_LOGGER`:
 
 ```sql
-BEGIN
-  -- Map JavaScript log levels to Oracle Logger levels
-  DECLARE
-    v_level NUMBER;
-  BEGIN
-    CASE :x01
-      WHEN 'ERROR' THEN v_level := 2;
-      WHEN 'WARNING' THEN v_level := 4;
-      WHEN 'INFORMATION' THEN v_level := 8;
-      ELSE v_level := 8;
-    END CASE;
-    
-    -- Log to Oracle Logger (https://github.com/OraOpenSource/Logger)
-    logger.log(
-      p_text => :x02,
-      p_module => :x03,
-      p_level => v_level,
-      p_extra => :x04
-    );
-  END;
-END;
+declare
+  l_level        varchar2(50)   := apex_application.g_x01;
+  l_text         varchar2(4000) := apex_application.g_x02;
+  l_module       varchar2(100)  := apex_application.g_x03;
+  l_extra_json   clob           := apex_application.g_x04;
+  l_timestamp    varchar2(50)   := apex_application.g_x05;
+  l_user         varchar2(100)  := apex_application.g_x06;
+  l_page_id      number         := apex_application.g_x07;
+  l_session      number         := apex_application.g_x08;
+  
+begin
+
+  
+  -- Call logger package to insert log entry
+  logger.log(
+      p_text    => l_text
+    , p_scope   => l_module
+    , p_extra   => l_extra_json
+    --, p_params  => null
+   -- p_timestamp   => to_timestamp_tz(l_timestamp, 'YYYY-MM-DD"T"HH24:MI:SS.FF3TZR'),
+   -- p_user        => l_user,
+   -- p_page_id     => l_page_id,
+   -- p_session     => l_session
+  );
+  
+  -- Return success response
+  apex_json.open_object;
+  apex_json.write('success', true);
+  apex_json.close_object;
+
+exception
+  when others then
+    apex_json.open_object;
+    apex_json.write('success', false);
+    apex_json.write('error_msg', sqlerrm);
+    apex_json.close_object;
+end;
 ```
 
 ### 2. Process Parameters
